@@ -16,4 +16,6 @@ class TPSTEMPLATE_API AWeapon_AssultRifle : public AMasterWeapon
 	GENERATED_BODY()
 public:
 	AWeapon_AssultRifle();
+
+	virtual void Fire() override;
 };

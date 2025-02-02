@@ -14,6 +14,11 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
+#include "Animation/LocomotionAnimInstance.h"
+#include "WeaponDataAsset.h"
+#include "./Public/Weapon/DA_Rifle.h"
+#include "./Public/Weapon/DA_Pistol.h"
+#include "Blueprint/UserWidget.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
@@ -29,7 +34,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	// 컨트롤러 회전 설정
 	// 컨트롤러의 회전이 캐릭터에 직접 영향을 주지 않도록 설정
 	bUseControllerRotationPitch = false;  // 상하 회전 비활성화
-	bUseControllerRotationYaw = false;    // 좌우 회전 비활성화
+	bUseControllerRotationYaw = true;    // 좌우 회전 비활성화
 	bUseControllerRotationRoll = false;   // 측면 회전 비활성화
 
 	// Character Movement 설정
@@ -72,17 +77,14 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	PrimaryChild->SetupAttachment(Primary);
 	HandgunChild->SetupAttachment(Handgun);
 
+	// 무기 클래스 설정
 	if (PrimaryChild)
 	{
 		PrimaryChild->SetChildActorClass(AWeapon_AssultRifle::StaticClass());
-		PrimaryChild->SetupAttachment(Primary);
-		UE_LOG(LogTemp, Warning, TEXT("Successed PrimaryChild"));
 	}
 	if (HandgunChild)
 	{
 		HandgunChild->SetChildActorClass(AAWeapon_Handgun::StaticClass());
-		HandgunChild->SetupAttachment(Handgun);
-		UE_LOG(LogTemp, Warning, TEXT("Successed HandgunChild"));
 	}
 
 	// Camera Boom 설정
@@ -104,11 +106,6 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	// 실제 카메라 컴포넌트 설정
 	FollowCamera->bUsePawnControlRotation = false;               // 폰 회전과 독립적으로 설정
 
-	// 네트워크 복제 설정
-	// 멀티플레이어 동기화를 위한 설정
-	SetReplicates(true);                                        // 액터 복제 활성화
-	SetReplicateMovement(true);                                 // 움직임 복제 활성화
-
 	ShoulderYOffset = 50.0f;
 	ShoulderZOffset = 20.0f;
 	TargetArmLengths = FVector(200.0f, 100.0f, 0.0f);
@@ -118,18 +115,70 @@ void ATPSTemplateCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// 무기 소켓 부착 및 초기화
+	// Initialize UI widgets
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		// Initialize Current Weapon UI
+		CurrentWeaponUI = CreateWidget<UUserWidget>(PlayerController, 
+			LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPerson/Blueprints/W_ShooterHUD.W_ShooterHUD_C")));
+		
+		if (CurrentWeaponUI)
+		{
+			CurrentWeaponUI->AddToViewport();
+			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added CurrentWeaponUI to viewport"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create CurrentWeaponUI widget"));
+		}
+
+		// Initialize Crosshair UI
+		/*UICrosshair = CreateWidget<UUserWidget>(PlayerController, 
+			LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPerson/Blueprints/WeaponBP/Crosshair/UI_Crosshair.UI_Crosshair_C")));
+		
+		if (UICrosshair)
+		{
+			UICrosshair->AddToViewport();
+			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added UICrosshair to viewport"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create UICrosshair widget"));
+		}*/
+	}
+
+	// MEMO: When initialized in the constructor instead of BeginPlay, 
+	// RifleData becomes NULL again
+	WeaponSystem->RifleData = NewObject<UDA_Rifle>();
+	WeaponSystem->PistolData = NewObject<UDA_Pistol>();
+
 	if (Primary)
 	{
 		Primary->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("RifleHost_Socket"));
-		UE_LOG(LogTemp, Warning, TEXT("Successed RifleHost_Socket"));
+		TArray<USceneComponent*> AttachedChildren = Primary->GetAttachChildren();
+		if (AttachedChildren.Num() > 0)
+		{
+			PrimaryChild = Cast<UChildActorComponent>(AttachedChildren[0]);
+			if (PrimaryChild)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Successed PrimaryChild"));
+			}
+		}
 	}
 	if (Handgun)
 	{
 		Handgun->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("PistolHost_Socket"));
-		UE_LOG(LogTemp, Warning, TEXT("Successed PistolHost_Socket"));
+		TArray<USceneComponent*> AttachedChildren = Handgun->GetAttachChildren();
+		if (AttachedChildren.Num() > 0)
+		{
+			HandgunChild = Cast<UChildActorComponent>(AttachedChildren[0]);
+			if (HandgunChild)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Successed HandgunChild"));
+			}
+		}
 	}
-	
+
 	// Sequence 1
 	WeaponSystem->CharacterRef = this;
 	HealthComponent->CharacterRef = this;
@@ -139,7 +188,22 @@ void ATPSTemplateCharacter::BeginPlay()
 	CameraBoom->TargetArmLength = TargetArmLengths.X;
 
 	// Sequence 3
-	// TODO: Create Widget
+	// Create HUD Widget
+	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		UUserWidget* ShooterHUD = CreateWidget<UUserWidget>(PlayerController, 
+			LoadClass<UUserWidget>(nullptr, TEXT("/Game/ThirdPerson/Blueprints/W_ShooterHUD.W_ShooterHUD_C")));
+		
+		if (ShooterHUD)
+		{
+			ShooterHUD->AddToViewport();
+			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added ShooterHUD to viewport"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create ShooterHUD widget"));
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -171,6 +235,9 @@ void ATPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 		// Switch Weapons
 		EnhancedInputComponent->BindAction(SwitchWeaponsAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::SwitchWeapons);
+
+		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::ShootFire);
+
 	}
 	else
 	{
@@ -189,6 +256,7 @@ void ATPSTemplateCharacter::Move(const FInputActionValue& Value)
 		const FRotator Rotation = Controller->GetControlRotation();
 		const FRotator YawRotation(0, Rotation.Yaw, 0);
 
+		TurnRate = FMath::Clamp(MovementVector.X, -1.0f, 1.0f);
 		// get forward vector
 		const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	
@@ -214,7 +282,217 @@ void ATPSTemplateCharacter::Look(const FInputActionValue& Value)
 	}
 }
 
-void ATPSTemplateCharacter::SwitchWeapons(const FInputActionValue& Value)
+void ATPSTemplateCharacter::SwitchWeapons()
 {
+	
+}
 
+void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
+{
+	if (!CanSwitchWeapon() && IsPrimaryEquip)
+		return;
+
+	bCanSwitchWeapon = false;
+	IsPistolEquip = false;
+	
+	LocomotionBP->LeftHandIKOffset = WeaponSystem->RifleData->LeftHandIKOffset;
+
+	WeaponSystem->Pistol_State(WeaponSystem->PistolData->WeaponClass, EAnimationState::Pistol, EWeaponState::Unequip, FName(""), FName("PistolHost_Socket"));
+	IsPrimaryEquip = true;
+
+	// TODO: Add Weapon UI
+	//AddWeaponUI(WeaponSystem->RifleData);
+	WeaponSystem->Rifle_State(WeaponSystem->RifleData->WeaponClass, EAnimationState::RifleShotgun, EWeaponState::Equip, FName("Rifle_Socket"), FName(""));
+
+	// Play Montage with Delay
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AnimInstance is NULL"));
+		return;
+	}
+
+	if (AnimInstance)
+	{
+		UAnimMontage* RifleEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1")));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("RifleEquipMontage %s"));
+		// 몽타주 재생
+        AnimInstance->Montage_Play(RifleEquipMontage, 1.0f);
+        
+        // 몽타주 완료 델리게이트 바인딩
+        FOnMontageEnded CompleteDelegate;
+        CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(CompleteDelegate, RifleEquipMontage);
+	}
+	
+}
+
+void ATPSTemplateCharacter::SwitchToHandgunWeapon()
+{
+	if (!CanSwitchWeapon() && IsPistolEquip)
+		return;
+
+	bCanSwitchWeapon = false;
+	IsPrimaryEquip = false;
+
+	LocomotionBP->LeftHandIKOffset = WeaponSystem->PistolData->LeftHandIKOffset;
+
+	WeaponSystem->Rifle_State(WeaponSystem->RifleData->WeaponClass, EAnimationState::RifleShotgun, EWeaponState::Unequip, FName(""), FName("RifleHost_Socket"));
+	IsPrimaryEquip = true;
+
+	// TODO: Add Weapon UI
+	//AddWeaponUI(WeaponSystem->RifleData);
+	WeaponSystem->Pistol_State(WeaponSystem->PistolData->WeaponClass, EAnimationState::Pistol, EWeaponState::Equip, FName("Pistol_Socket"), FName(""));
+
+	// Play Montage with Delay
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AnimInstance is NULL"));
+		return;
+	}
+
+	if (AnimInstance)
+	{
+		UAnimMontage* PistolEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2")));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("RifleEquipMontage %s"));
+		// 몽타주 재생
+		AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
+
+		// 몽타주 완료 델리게이트 바인딩
+		FOnMontageEnded CompleteDelegate;
+		CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(CompleteDelegate, PistolEquipMontage);
+	}
+}
+
+bool ATPSTemplateCharacter::CanSwitchWeapon()
+{
+	UE_LOG(LogTemp, Warning, TEXT("bCanSwitchWeapon: %d, bInteracting: %d"), bCanSwitchWeapon, bInteracting);
+	return bCanSwitchWeapon && !bInteracting;
+}
+
+void ATPSTemplateCharacter::ClearWeaponUI()
+{
+	if (!CurrentWeaponUI)
+		return;
+	CurrentWeaponUI->RemoveFromParent();
+}
+
+UUserWidget* ATPSTemplateCharacter::AddWeaponUI(UWeaponDataAsset* WeaponData)
+{
+	if (!IsPlayerControlled())
+		return nullptr;
+	ClearWeaponUI();
+
+	/*if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
+	{
+		UUserWidget* WeaponUI = CreateWidget(nullptr, WeaponSystem->RifleData->WeaponUI);
+		if (WeaponUI)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Successed to create Dynamic Weapon HUD"));
+			CurrentWeaponUI = WeaponUI;
+			if (IsPrimaryEquip)
+			{
+				CurrentWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
+			}
+			else
+			{
+				CurrentWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+			}
+			if(!CurrentWeapon)
+				UE_LOG(LogTemp, Warning, TEXT("Failed to Initialize CurrentWeapon"));
+			
+		}
+		else
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create Dynamic Weapon HUD"));
+	}*/
+	
+	return nullptr;
+}
+
+void ATPSTemplateCharacter::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// 몽타주 재생이 끝난 후의 처리
+	if (!bInterrupted)
+	{
+		// 딜레이 후 몽타주 재생
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			[this]()
+			{
+				bCanSwitchWeapon = true;
+			},
+			0.25f,  // 0.25초 딜레이
+			false
+		);
+	}
+}
+
+void ATPSTemplateCharacter::ShootFire(const FInputActionValue& Value)
+{
+	bFiring = Value.Get<bool>();
+    HandleFiring();
+}
+
+bool ATPSTemplateCharacter::CanFire()
+{
+	
+	bool bCanShoot = !IsSprint && !IsDodging && CanJump();
+	if (bCanShoot || IsCrouch)
+		return true;
+	else
+		return false;
+}
+
+
+void ATPSTemplateCharacter::StopFire()
+{
+    bFiring = false;
+}
+
+void ATPSTemplateCharacter::HandleFiring()
+{
+    if (!bFiring)
+        return;
+
+    if (!bCanFire)
+        return;
+
+    if (!CanFire())
+        return;
+
+    if (IsPrimaryEquip)
+    {
+        AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
+        if (MasterWeapon)
+        {
+            bCanFire = false;
+            MasterWeapon->Fire();
+
+            // 발사 모드에 따른 다음 발사 처리
+            float FireDelay = WeaponSystem->RifleData->FireRate;
+            EFireMode CurrentFireMode = WeaponSystem->RifleData->FireMode;
+
+            switch (CurrentFireMode)
+            {
+                case EFireMode::FullAuto:
+                    // 자동 발사는 타이머로 다음 발사 예약
+					FTimerHandle TimerHandle;
+					GetWorld()->GetTimerManager().SetTimer(
+						TimerHandle,
+                        [this]()
+                        {
+                            bCanFire = true;
+                            HandleFiring(); // 재귀적으로 발사 처리
+							GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Fire!!!!!!!!!!!!!!!!!!!!!!!!!"));
+                        },
+                        FireDelay,
+                        false
+                    );
+                    break;
+            }
+        }
+    }
 }

@@ -18,6 +18,8 @@ class AMasterWeapon;
 class UHealthComponent;
 class UWeaponSystem;
 struct FInputActionValue;
+class ULocomotionAnimInstance;
+class UWeaponDataAsset;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -49,10 +51,6 @@ class ATPSTemplateCharacter : public ACharacter
 	/** Hand-Gun Socket*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* Handgun;
-
-	/** Handgun Child Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UChildActorComponent* HandgunChild;
 	
 	/** MappingContext */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -75,6 +73,9 @@ class ATPSTemplateCharacter : public ACharacter
 	UInputAction* SwitchWeaponsAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ShootAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UWeaponSystem* WeaponSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -87,6 +88,10 @@ public:
 	/** Primary Child Socket*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UChildActorComponent* PrimaryChild;
+
+	/** Handgun Child Socket*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UChildActorComponent* HandgunChild;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
 	float TurnRate;
@@ -123,7 +128,7 @@ public:
 	bool Dead;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool Interacting;
+	bool bInteracting;
 
 	// State Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
@@ -133,9 +138,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	EAnimationState CurrentAnimationState;
 
-	// TODO: Weapon Variables
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* CurrentWeaponUI;*/
+	// Weapon Variables
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	class UUserWidget* CurrentWeaponUI;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class AMasterWeapon* CurrentWeapon;
@@ -145,8 +150,8 @@ public:
 	bool IsAim;
 
 	// TODO: Crosshair UI
-	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* UICrosshair;*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	class UUserWidget* UICrosshair;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool IsPistolEquip;
@@ -158,16 +163,16 @@ public:
 	bool IsWeaponEquip;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool CanFire;
+	bool bCanFire = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool IsAttacking;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool canSwitchWeapon;
+	bool bCanSwitchWeapon = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool Firing;
+	bool bFiring;
 
 	// Camera variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
@@ -196,8 +201,31 @@ protected:
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
 			
-	void SwitchWeapons(const FInputActionValue& Value);
+	UFUNCTION(BlueprintCallable, Category = "InputAction")
+	void SwitchWeapons();
 
+	UFUNCTION(BlueprintCallable, Category = "InputAction")
+	void SwitchToPrimaryWeapon();
+
+	UFUNCTION(BlueprintCallable, Category = "InputAction")
+	void SwitchToHandgunWeapon();
+
+	UFUNCTION()
+	void ShootFire(const FInputActionValue& Value);
+
+	void StopFire();
+
+	void HandleFiring();
+
+	bool CanFire();
+
+	bool CanSwitchWeapon();
+
+	UFUNCTION()
+	void ClearWeaponUI();
+
+	UFUNCTION()
+	UUserWidget* AddWeaponUI(UWeaponDataAsset* WeaponData);
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -212,5 +240,8 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns HealthComponent subobject **/
 	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };
 

@@ -41,7 +41,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
 	EWeaponType WeaponType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Details")
 	AMasterWeapon* WeaponClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Mode Data")
@@ -68,7 +68,7 @@ public:
 	UTexture2D* WeaponUITexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	UTexture2D* WeaponUI;
+	TSubclassOf<UUserWidget> WeaponUI;
 
 	// Animation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")

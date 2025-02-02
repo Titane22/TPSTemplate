@@ -17,3 +17,7 @@ AWeapon_AssultRifle::AWeapon_AssultRifle()
     WeaponType = EAnimationState::RifleShotgun;
 }
 
+void AWeapon_AssultRifle::Fire()
+{
+    
+}

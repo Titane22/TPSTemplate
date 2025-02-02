@@ -16,3 +16,8 @@ AAWeapon_Handgun::AAWeapon_Handgun()
     // 무기 타입 설정
     WeaponType = EAnimationState::Pistol;
 }
+
+void AAWeapon_Handgun::Fire()
+{
+
+}

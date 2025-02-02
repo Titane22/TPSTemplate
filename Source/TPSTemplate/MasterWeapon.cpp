@@ -81,3 +81,8 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
     return false;
 }
 
+void AMasterWeapon::Fire()
+{
+    // 기본 구현 - 자식 클래스에서 오버라이드 가능
+}
+

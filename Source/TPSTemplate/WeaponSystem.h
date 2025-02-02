@@ -102,10 +102,22 @@ public:
 							 FName InUnEquipSocketName);*/
 
 	UFUNCTION()
+	void Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName);
+
+	UFUNCTION()
+	void Pistol_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName);
+
+	UFUNCTION()
 	void RifleEquip(FName SocketName);
 
 	UFUNCTION()
 	void RifleUnequip(FName SocketName);
+
+	UFUNCTION()
+	void PistolEquip(FName SocketName);
+
+	UFUNCTION()
+	void PistolUnequip(FName SocketName);
 
 protected:
 	// Called when the game starts
@@ -132,11 +144,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bIsDryAmmo;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UWeaponDataAsset* PistolData;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UWeaponDataAsset* RifleData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	UUserWidget* CrosshairWidget;
@@ -145,4 +152,10 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
 	ATPSTemplateCharacter* CharacterRef;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UWeaponDataAsset* PistolData;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UWeaponDataAsset* RifleData;
 };

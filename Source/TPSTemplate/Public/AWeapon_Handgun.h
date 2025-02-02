@@ -17,4 +17,7 @@ class TPSTEMPLATE_API AAWeapon_Handgun : public AMasterWeapon
 	
 public:
 	AAWeapon_Handgun();
+
+	virtual void Fire() override;
+
 };
