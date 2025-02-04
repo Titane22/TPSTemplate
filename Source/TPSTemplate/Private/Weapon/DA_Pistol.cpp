@@ -3,6 +3,7 @@
 
 #include "Weapon/DA_Pistol.h"
 #include "../Public/AWeapon_Handgun.h"
+#include "../Public/Widget/W_DynamicWeaponHUD.h"
 
 UDA_Pistol::UDA_Pistol()
 	: Super()
@@ -74,7 +75,7 @@ UDA_Pistol::UDA_Pistol()
         UE_LOG(LogTemp, Warning, TEXT("Failed to load WeaponUITexture"));
     }
 
-    /*static ConstructorHelpers::FClassFinder<UUserWidget> WeaponUIClass(TEXT("/Game/ThirdPerson/Blueprints/W_DynamicWeaponHUD.W_DynamicWeaponHUD_C"));
+    static ConstructorHelpers::FClassFinder<UW_DynamicWeaponHUD> WeaponUIClass(TEXT("/Game/ThirdPerson/Blueprints/W_DynamicWeaponHUD.W_DynamicWeaponHUD_C"));
     if (WeaponUIClass.Succeeded())
     {
         WeaponUI = WeaponUIClass.Class;
@@ -83,7 +84,7 @@ UDA_Pistol::UDA_Pistol()
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("Failed to load WeaponUI Class"));
-    }*/
+    }
 
     // Audio
     static ConstructorHelpers::FObjectFinder<USoundBase> FireSoundAsset(TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/Pistol/MSS_Weapons_Pistol_Fire"));

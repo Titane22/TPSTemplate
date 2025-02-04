@@ -7,6 +7,7 @@
 #include "WeaponDataAsset.generated.h"
 
 class AMasterWeapon;
+class UW_DynamicWeaponHUD;
 
 UENUM(BlueprintType)
 enum class EWeaponType : uint8
@@ -68,7 +69,7 @@ public:
 	UTexture2D* WeaponUITexture;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
-	TSubclassOf<UUserWidget> WeaponUI;
+	TSubclassOf<UW_DynamicWeaponHUD> WeaponUI;
 
 	// Animation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")

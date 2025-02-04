@@ -20,6 +20,7 @@ class UWeaponSystem;
 struct FInputActionValue;
 class ULocomotionAnimInstance;
 class UWeaponDataAsset;
+class UW_DynamicWeaponHUD;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -140,7 +141,10 @@ public:
 
 	// Weapon Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* CurrentWeaponUI;
+	class UW_DynamicWeaponHUD* CurrentWeaponUI;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	class UUserWidget* UICrosshair;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class AMasterWeapon* CurrentWeapon;
@@ -149,9 +153,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool IsAim;
 
-	// TODO: Crosshair UI
+	// Crosshair UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* UICrosshair;
+	class UUserWidget* UIAmmo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool IsPistolEquip;

@@ -3,6 +3,7 @@
 
 #include "Weapon/DA_Rifle.h"
 #include "../Public/Weapon_AssultRifle.h"
+#include "../Public/Widget/W_DynamicWeaponHUD.h"
 
 UDA_Rifle::UDA_Rifle()
     : Super()
@@ -75,7 +76,7 @@ UDA_Rifle::UDA_Rifle()
     }
 
     // UI Widget Class 초기화
-    /*static ConstructorHelpers::FClassFinder<UUserWidget> WeaponUIClass(TEXT("/Game/ThirdPerson/Blueprints/W_DynamicWeaponHUD.W_DynamicWeaponHUD_C"));
+    static ConstructorHelpers::FClassFinder<UW_DynamicWeaponHUD> WeaponUIClass(TEXT("/Game/ThirdPerson/Blueprints/W_DynamicWeaponHUD.W_DynamicWeaponHUD_C"));
     if (WeaponUIClass.Succeeded())
     {
         WeaponUI = WeaponUIClass.Class;
@@ -84,7 +85,7 @@ UDA_Rifle::UDA_Rifle()
     else
     {
         UE_LOG(LogTemp, Warning, TEXT("Failed to load WeaponUI Class"));
-    }*/
+    }
 
     // Audio
     static ConstructorHelpers::FObjectFinder<USoundBase> FireSoundAsset(TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/Rifle2/MSS_Weapons_Rifle2_Fire"));

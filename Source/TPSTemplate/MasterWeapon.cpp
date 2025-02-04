@@ -5,6 +5,8 @@
 #include "TPSTemplateCharacter.h"
 #include "HealthComponent.h" 
 #include "WeaponDataAsset.h"
+#include "./Weapon/DA_Pistol.h"
+#include "./Weapon/DA_Rifle.h"
 #include "Kismet/GameplayStatics.h"
 
 // Sets default values
@@ -13,14 +15,37 @@ AMasterWeapon::AMasterWeapon()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-    // 컴포넌트 생성
+    // Create Components
     DefaultSceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("DefaultSceneRoot"));
     WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
     WeaponSystem = CreateDefaultSubobject<UWeaponSystem>(TEXT("WeaponSystem"));
 
-    // 컴포넌트 계층 구조 설정
+    // Setting up the component hierarchy
     RootComponent = DefaultSceneRoot;
     WeaponMesh->SetupAttachment(DefaultSceneRoot);
+
+    WeaponType = EAnimationState::Unarmed;
+    bReloading = false;
+    bAutoReload = false;
+
+    WeaponSystem->MasterWeapon = this;
+    WeaponSystem->AnimationState = EAnimationState::Unarmed;
+    WeaponSystem->Weapon_Details = {
+        FWeapon_Data{
+            /* CurrentAmmo */ 32,
+            /* MaxAmmo */ 90,
+            /* ClipAmmo */ 32,
+            /* DifferentAmmo */ 90,
+            /* Ammo_Count */ 1,
+            /* ShortGun_Trace */ false
+        }
+    };
+
+    WeaponSystem->bIsDryAmmo = false;
+    WeaponSystem->PistolData = NewObject<UDA_Pistol>();
+    WeaponSystem->RifleData = NewObject<UDA_Rifle>();
+
+    WeaponSystem->CrosshairWidget = nullptr;
 }
 
 // Called when the game starts or when spawned
@@ -31,7 +56,7 @@ void AMasterWeapon::BeginPlay()
     ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(GetAttachParentActor());
     if (!Player)
         return;
-    // TODO: WeaponSystem->Ch = Player;
+    WeaponSystem->CharacterRef = Player;
 }
 
 bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)

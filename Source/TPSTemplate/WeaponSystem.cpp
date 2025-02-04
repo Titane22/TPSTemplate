@@ -6,6 +6,7 @@
 #include "TPSTemplateCharacter.h"
 #include "WeaponDataAsset.h"
 #include "Public/Weapon/DA_Rifle.h"
+#include "Public/Weapon/DA_Pistol.h"
 
 // Sets default values for this component's properties
 UWeaponSystem::UWeaponSystem()
@@ -50,21 +51,21 @@ void UWeaponSystem::Pistol_State(AMasterWeapon* toSetMasterWeapon, EAnimationSta
 
 void UWeaponSystem::RifleEquip(FName SocketName)
 {
-	// 캐릭터 레퍼런스가 유효한지 확인
+	// Check if CharacterRef is valid
 	if (CharacterRef == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UWeaponSystem::RifleEquip CharacterRef is Null"));
 		return;
 	}
 
-	// Primary Child Component를 가져오고 캐스팅
+	// Get Primary Child Component and Cast
 	if (!CharacterRef->PrimaryChild)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("UWeaponSystem::RifleEquip PrimaryChild is Null"));
 		return;
 	}
 
-	// Child Actor Class를 MasterWeapon으로 설정
+	// Set Child Actor Class to MasterWeapon
 	CharacterRef->PrimaryChild->SetChildActorClass(MasterWeapon->GetClass());
 
 	UWeaponSystem* TargetWeaponSystem = Cast<UWeaponSystem>(CharacterRef->PrimaryChild->GetChildActor()->GetComponentByClass(this->GetClass()));
@@ -194,7 +195,9 @@ void UWeaponSystem::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
+
+	RifleData = NewObject<UDA_Rifle>();
+	PistolData = NewObject<UDA_Pistol>();
 }
 
 

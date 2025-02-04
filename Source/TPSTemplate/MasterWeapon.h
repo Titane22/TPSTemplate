@@ -38,6 +38,9 @@ public:
 	class UWeaponSystem* WeaponSystem;
 
 	// 무기 속성들
+
+	// TODO: Interaction Weapon Pickup
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	EAnimationState WeaponType;
 

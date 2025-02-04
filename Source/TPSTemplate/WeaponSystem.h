@@ -69,38 +69,6 @@ public:
 	// Sets default values for this component's properties
 	UWeaponSystem();
 
-	// 서버에서 실행될 Rifle State 함수
-	/*UFUNCTION(Server, Reliable)
-	void Rifle_State(AMasterWeapon* InMasterWeapon, 
-					EAnimationState InAnimState, 
-					EWeaponState InWeaponState,
-					FName InEquipSocketName, 
-					FName InUnEquipSocketName);*/
-
-	// 클라이언트에서 실행될 Rifle State 함수
-	/*UFUNCTION(Client, Reliable)
-	void Rifle_State_Client(AMasterWeapon* InMasterWeapon, 
-						  EAnimationState InAnimState, 
-						  EWeaponState InWeaponState,
-						  FName InEquipSocketName, 
-						  FName InUnEquipSocketName);*/
-
-	// 서버에서 실행될 Pistol State 함수
-	/*UFUNCTION(Server, Reliable)
-	void Pistol_State(AMasterWeapon* InMasterWeapon, 
-					 EAnimationState InAnimState, 
-					 EWeaponState InWeaponState,
-					 FName InEquipSocketName, 
-					 FName InUnEquipSocketName);*/
-
-	// 클라이언트에서 실행될 Pistol State 함수
-	/*UFUNCTION(Client, Reliable)
-	void Pistol_State_Client(AMasterWeapon* InMasterWeapon, 
-							 EAnimationState InAnimState, 
-							 EWeaponState InWeaponState,
-							 FName InEquipSocketName, 
-							 FName InUnEquipSocketName);*/
-
 	UFUNCTION()
 	void Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName);
 
@@ -127,7 +95,7 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-protected:
+public:
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USkeletalMesh* WeaponMesh;
@@ -139,8 +107,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	EAnimationState AnimationState;
 
-	// TODO: Weapon Detail
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bIsDryAmmo;
 
@@ -148,7 +114,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
 	UUserWidget* CrosshairWidget;
 
-public:
+	UPROPERTY()
+	FWeapon_Details Weapon_Details = {
+		FWeapon_Data{
+			/* CurrentAmmo */ 32,
+			/* MaxAmmo */ 90,
+			/* ClipAmmo */ 32,
+			/* DifferentAmmo */ 90,
+			/* Ammo_Count */ 1,
+			/* ShortGun_Trace */ false
+		}
+	};
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
 	ATPSTemplateCharacter* CharacterRef;
