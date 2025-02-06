@@ -506,7 +506,7 @@ void ATPSTemplateCharacter::HandleFiring()
                         {
                             bCanFire = true;
                             HandleFiring(); // Recursive firing process
-							GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Fire!!!!!!!!!!!!!!!!!!!!!!!!!"));
+							//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Fire!!!!!!!!!!!!!!!!!!!!!!!!!"));
                         },
                         FireDelay,
                         false

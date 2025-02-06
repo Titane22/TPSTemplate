@@ -5,6 +5,9 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Public/AnimationState.h"
+#include "NiagaraSystem.h"
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 #include "WeaponSystem.generated.h"
 
 class USkeletalMesh;
@@ -12,6 +15,8 @@ class AMasterWeapon;
 class ATPSTemplateCharacter;
 class UWeaponDataAsset;
 class UUserWidget;
+class UNiagaraSystem;
+class USceneComponent;
 
 USTRUCT(BlueprintType)
 struct FWeapon_Data
@@ -86,6 +91,14 @@ public:
 
 	UFUNCTION()
 	void PistolUnequip(FName SocketName);
+
+	bool FireCheck(int32 AmmoCount);
+
+	void FireFX(USoundBase* Sound, FVector Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings);
+
+	void MuzzleVFX(UNiagaraSystem* SystemTemplate, USceneComponent* AttachToComponent);
+
+	void FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);
 
 protected:
 	// Called when the game starts

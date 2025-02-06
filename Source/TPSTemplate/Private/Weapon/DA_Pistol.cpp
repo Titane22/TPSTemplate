@@ -26,10 +26,10 @@ UDA_Pistol::UDA_Pistol()
     // Animation
     LeftHandIKOffset = FVector(0.0f, 0.0f, 0.0f);
 
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyFireMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Pistol_Fire_Montage"));
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponFireMontageAsset(TEXT("/Game/Weapons/Rifle/Animations/AM_Weap_Rifle_Fire"));
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyReloadMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Pistol_Reload_Montage"));
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponReloadMontageAsset(TEXT("/Game/Weapons/Rifle/Animations/AM_Weap_Rifle_Reload"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyFireMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Pistol/Fire/MM_Pistol_Fire_Montage"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponFireMontageAsset(TEXT("/Game/Weapons/Pistol/Animations/Weap_Pistol_Fire"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyReloadMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Pistol/Fire/MM_Pistol_Reload_Montage"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponReloadMontageAsset(TEXT("/Game/Weapons/Pistol/Animations/Weap_Pistol_Reload"));
     if (BodyFireMontageAsset.Succeeded())
     {
         BodyFireMontage = BodyFireMontageAsset.Object;

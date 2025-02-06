@@ -19,9 +19,8 @@ public:
 	// Sets default values for this actor's properties
 	AMasterWeapon();
 
-	// Fire 함수를 virtual로 선언하고 기본 구현 제공
 	virtual void Fire();
-
+	virtual void Reload();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -7,6 +7,8 @@
 #include "WeaponDataAsset.h"
 #include "Public/Weapon/DA_Rifle.h"
 #include "Public/Weapon/DA_Pistol.h"
+#include "Kismet/GameplayStatics.h"
+#include "Components/SceneComponent.h"
 
 // Sets default values for this component's properties
 UWeaponSystem::UWeaponSystem()
@@ -187,6 +189,78 @@ void UWeaponSystem::PistolUnequip(FName SocketName)
 	);
 
 	CharacterRef->CurrentAnimationState = AnimationState;
+}
+
+bool UWeaponSystem::FireCheck(int32 AmmoCount)
+{
+	if(Weapon_Details.Weapon_Data.CurrentAmmo == 0)
+		return false;
+	Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.CurrentAmmo - AmmoCount;
+	return true;
+}
+
+void UWeaponSystem::FireFX(USoundBase* Sound, FVector Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings)
+{
+	if (!Sound)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("UWeaponSystem::FireFX Sound is null"));
+		return;
+	}
+
+	UGameplayStatics::SpawnSoundAtLocation(
+		this,           // World context object
+		Sound,          // Sound to play
+		Location,       // Location to play sound at
+		FRotator::ZeroRotator,  // Rotation (default to zero)
+		1.0f,          // Volume multiplier
+		1.0f,          // Pitch multiplier
+		0.0f,          // Start time
+		AttenuationSettings,    // Attenuation settings
+		ConcurrencySettings     // Concurrency settings
+	);
+}
+
+void UWeaponSystem::MuzzleVFX(UNiagaraSystem* SystemTemplate, USceneComponent* AttachToComponent)
+{
+	if (!SystemTemplate || !AttachToComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MuzzleVFX: SystemTemplate or AttachToComponent is null"));
+		return;
+	}
+
+	UNiagaraComponent* NiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAttached(
+		SystemTemplate,           // 나이아가라 시스템 템플릿
+		AttachToComponent,       // 부착할 컴포넌트
+		NAME_None,               // 소켓 이름 (None으로 설정)
+		FVector(0, 0, 0),        // 위치 오프셋
+		FRotator(0, 0, 0),       // 회전 오프셋
+		EAttachLocation::KeepRelativeOffset,  // 위치 타입
+		true,                    // Auto Activate
+		true,                    // Auto Destroy
+		ENCPoolMethod::None,     // Pooling Method
+		true                     // Pre Cull Check
+	);
+
+	if (!NiagaraComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("MuzzleVFX: Failed to spawn niagara component"));
+	}
+}
+
+void UWeaponSystem::FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim)
+{
+	UAnimMontage* FireAnim = nullptr;
+
+	switch (CharacterRef->CurrentAnimationState)
+	{
+	case EAnimationState::Pistol:
+		FireAnim = PistolAnim;
+		break;
+	case EAnimationState::RifleShotgun:
+		FireAnim = RifleAnim;
+		break;
+	}
+	CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(FireAnim);
 }
 
 // Called when the game starts
