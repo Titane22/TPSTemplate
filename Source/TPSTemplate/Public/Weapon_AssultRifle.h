@@ -19,7 +19,7 @@ public:
 
 	virtual void Fire() override;
 	virtual void BeginPlay() override;
-
+	virtual void Reload() override;
 protected:
 	USceneComponent* Muzzle;
 private:

@@ -263,6 +263,73 @@ void UWeaponSystem::FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAni
 	CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(FireAnim);
 }
 
+bool UWeaponSystem::CheckAmmo()
+{
+	bool bHasAmmo = Weapon_Details.Weapon_Data.MaxAmmo > 0;
+	bool bCanReload = Weapon_Details.Weapon_Data.CurrentAmmo < Weapon_Details.Weapon_Data.ClipAmmo;
+	return bHasAmmo && bCanReload;
+}
+
+float UWeaponSystem::ReloadMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim)
+{
+	UAnimMontage* ReloadAnim = nullptr;
+	switch (CharacterRef->CurrentAnimationState)
+	{
+	case EAnimationState::Pistol:
+		ReloadAnim = PistolAnim;
+		break;
+	case EAnimationState::RifleShotgun:
+		ReloadAnim = RifleAnim;
+		break;
+	}
+
+	return CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(ReloadAnim);
+}
+
+void UWeaponSystem::ReloadCheck()
+{
+	FWeapon_Data& WeaponData = Weapon_Details.Weapon_Data;
+	if (WeaponData.MaxAmmo > 0)
+	{
+		if (WeaponData.CurrentAmmo == 0)
+		{
+			if (WeaponData.MaxAmmo >= WeaponData.ClipAmmo)
+			{
+				WeaponData.CurrentAmmo = WeaponData.ClipAmmo;
+				WeaponData.MaxAmmo = WeaponData.MaxAmmo - WeaponData.ClipAmmo;
+			}
+			else
+			{
+				WeaponData.CurrentAmmo = WeaponData.MaxAmmo;
+				WeaponData.MaxAmmo = 0;
+			}
+		}
+		else
+		{
+			if (WeaponData.MaxAmmo >= WeaponData.ClipAmmo)
+			{
+				WeaponData.MaxAmmo = WeaponData.MaxAmmo - (WeaponData.ClipAmmo - WeaponData.CurrentAmmo);
+				WeaponData.CurrentAmmo = WeaponData.ClipAmmo;
+			}
+			else
+			{
+				int32 RemainAmmo = WeaponData.ClipAmmo - WeaponData.CurrentAmmo;
+				if (RemainAmmo > WeaponData.MaxAmmo)
+				{
+					WeaponData.CurrentAmmo = WeaponData.CurrentAmmo + WeaponData.MaxAmmo;
+					WeaponData.MaxAmmo = 0;
+				}
+				else
+				{
+					WeaponData.CurrentAmmo = WeaponData.CurrentAmmo + RemainAmmo;
+					WeaponData.MaxAmmo = WeaponData.MaxAmmo - RemainAmmo;
+				}
+			}
+		}
+		FireCheck(0);
+	}
+}
+
 // Called when the game starts
 void UWeaponSystem::BeginPlay()
 {

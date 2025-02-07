@@ -77,6 +77,9 @@ class ATPSTemplateCharacter : public ACharacter
 	UInputAction* ShootAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* ReloadAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UWeaponSystem* WeaponSystem;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
@@ -217,6 +220,9 @@ protected:
 	UFUNCTION()
 	void ShootFire(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void Reload();
+
 	void StopFire();
 
 	void HandleFiring();
@@ -230,6 +236,9 @@ protected:
 
 	UFUNCTION()
 	UUserWidget* AddWeaponUI(UWeaponDataAsset* WeaponData);
+
+	void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;

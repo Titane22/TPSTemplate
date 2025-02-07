@@ -168,11 +168,11 @@ void ATPSTemplateCharacter::BeginPlay()
 		if (UICrosshair)
 		{
 			UICrosshair->AddToViewport();
-			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added CurrentWeaponUI to viewport"));
+			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added UICrosshair to viewport"));
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to create CurrentWeaponUI widget"));
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create UICrosshair widget"));
 		}
 	}
 }
@@ -208,6 +208,7 @@ void ATPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EnhancedInputComponent->BindAction(SwitchWeaponsAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::SwitchWeapons);
 
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::ShootFire);
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Reload);
 
 	}
 	else
@@ -415,6 +416,7 @@ UUserWidget* ATPSTemplateCharacter::AddWeaponUI(UWeaponDataAsset* WeaponData)
 				return nullptr;
 			}
 
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Current Ammo: %d"), CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo));
 			CurrentWeaponUI->SetWeaponData(WeaponData->WeaponUITexture,
 				WeaponData->WeaponName,
 				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
@@ -456,6 +458,29 @@ void ATPSTemplateCharacter::ShootFire(const FInputActionValue& Value)
     HandleFiring();
 }
 
+void ATPSTemplateCharacter::Reload()
+{
+    AMasterWeapon* MasterWeapon = nullptr;  // nullptr로 초기화
+
+    if (IsPrimaryEquip)
+    {
+        MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
+    }
+    else if (IsPistolEquip)
+    {
+        MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+    }
+    else
+    {
+        return; // 무기를 들고 있지 않은 경우
+    }
+
+    if (!MasterWeapon)
+        return;
+
+    MasterWeapon->Reload();
+}
+
 bool ATPSTemplateCharacter::CanFire()
 {
 	
@@ -485,34 +510,51 @@ void ATPSTemplateCharacter::HandleFiring()
 
     if (IsPrimaryEquip)
     {
-        AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
-        if (MasterWeapon)
-        {
-            bCanFire = false;
-            MasterWeapon->Fire();
-
-            // Process next shot based on fire mode
-            float FireDelay = WeaponSystem->RifleData->FireRate;
-            EFireMode CurrentFireMode = WeaponSystem->RifleData->FireMode;
-
-            switch (CurrentFireMode)
-            {
-                case EFireMode::FullAuto:
-                    // Auto-fire is scheduled with a timer
-					FTimerHandle TimerHandle;
-					GetWorld()->GetTimerManager().SetTimer(
-						TimerHandle,
-                        [this]()
-                        {
-                            bCanFire = true;
-                            HandleFiring(); // Recursive firing process
-							//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Fire!!!!!!!!!!!!!!!!!!!!!!!!!"));
-                        },
-                        FireDelay,
-                        false
-                    );
-                    break;
-            }
-        }
+		AActor* CurrentWeaponActor = PrimaryChild->GetChildActor();
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(CurrentWeaponActor);
+		UWeaponDataAsset* CurrentWeaponDataAsset = WeaponSystem->RifleData;
+		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
     }
+	else if(IsPistolEquip)
+	{
+		AActor* CurrentWeaponActor = HandgunChild->GetChildActor();
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(CurrentWeaponActor);
+		UWeaponDataAsset* CurrentWeaponDataAsset = WeaponSystem->PistolData;
+		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
+	}
+}
+
+void ATPSTemplateCharacter::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponDataAsset* CurrentWeaponDataAsset)
+{
+	if (!MasterWeapon || !CurrentWeaponDataAsset)
+		return;
+	
+	bCanFire = false;
+	MasterWeapon->Fire();
+
+	CurrentWeaponUI->UpdateAmmoCount(MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
+		MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
+
+	// Process next shot based on fire mode
+	float FireDelay = CurrentWeaponDataAsset->FireRate;
+	EFireMode CurrentFireMode = CurrentWeaponDataAsset->FireMode;
+
+	switch (CurrentFireMode)
+	{
+	case EFireMode::FullAuto:
+		// Auto-fire is scheduled with a timer
+		FTimerHandle TimerHandle;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			[this]()
+			{
+				bCanFire = true;
+				HandleFiring(); // Recursive firing process
+				//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Fire!!!!!!!!!!!!!!!!!!!!!!!!!"));
+			},
+			FireDelay,
+			false
+		);
+		break;
+	}
 }

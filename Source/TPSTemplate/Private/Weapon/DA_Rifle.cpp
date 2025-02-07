@@ -26,7 +26,7 @@ UDA_Rifle::UDA_Rifle()
     // Animation
     LeftHandIKOffset = FVector(0.0f, 0.0f, 0.0f);
 
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyFireMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Rifle/Fire/MM_Rifle_Fire_Montage.uasset"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyFireMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Rifle/Fire/MM_Rifle_Fire_Montage"));
     static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponFireMontageAsset(TEXT("/Game/Weapons/Rifle/Animations/AM_Weap_Rifle_Fire"));
     static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyReloadMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Rifle/Fire/MM_Rifle_Reload_Montage"));
     static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponReloadMontageAsset(TEXT("/Game/Weapons/Rifle/Animations/AM_Weap_Rifle_Reload"));

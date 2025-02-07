@@ -3,10 +3,12 @@
 
 #include "Weapon_AssultRifle.h"
 #include "./Weapon/DA_Rifle.h"
+#include "./Weapon/WeaponFireCameraShake.h"
 #include "../WeaponSystem.h"
 #include "Blueprint/UserWidget.h"
 #include "UObject/ConstructorHelpers.h"
 #include "../TPSTemplateCharacter.h"
+#include "./Widget/W_DynamicWeaponHUD.h"
 
 AWeapon_AssultRifle::AWeapon_AssultRifle()
 {
@@ -59,6 +61,50 @@ void AWeapon_AssultRifle::BeginPlay()
 
 }
 
+void AWeapon_AssultRifle::Reload()
+{
+    if (!WeaponSystem || !WeaponData)
+        return;
+    
+    if (!WeaponSystem->CheckAmmo())
+        return;
+    bReloading = true;
+    float ReloadDelay = 0.0f;
+    if (WeaponSystem)
+    {
+        ReloadDelay = WeaponSystem->ReloadMontage(nullptr, WeaponData->BodyReloadMontage);
+    }
+
+    if (WeaponMesh)
+    {
+        WeaponMesh->PlayAnimation(WeaponData->WeaponReloadMontage, false);
+    }
+
+    WeaponSystem->ReloadCheck();
+
+    FTimerHandle ReloadTimerHandle;
+    GetWorld()->GetTimerManager().SetTimer(
+        ReloadTimerHandle,
+        [this]()
+        {
+            if (WeaponSystem && WeaponSystem->CharacterRef &&
+                WeaponSystem->CharacterRef->CurrentWeaponUI)
+            {
+                FWeapon_Details WeaponDetails = WeaponSystem->Weapon_Details;
+                WeaponSystem->CharacterRef->CurrentWeaponUI->UpdateAmmoCount(
+                    WeaponDetails.Weapon_Data.MaxAmmo,
+                    WeaponDetails.Weapon_Data.CurrentAmmo
+                );
+                /*GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Reload() MaxAmmo: %d, CurrentAmmo: %d"), WeaponDetails.Weapon_Data.MaxAmmo,
+                    WeaponDetails.Weapon_Data.CurrentAmmo));*/
+            }
+            bReloading = false;
+        },
+        ReloadDelay,
+        false
+    );
+}
+
 void AWeapon_AssultRifle::Fire()
 {
     if (bReloading)
@@ -69,7 +115,8 @@ void AWeapon_AssultRifle::Fire()
         // Play camera shake effect for dry fire
         if (APlayerController* PC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
         {
-            //PC->ClientStartCameraShake(UCameraShakeBase::StaticClass(), 1.0f);
+            FVector EpicenterLocation = GetActorLocation();
+            PC->ClientStartCameraShake(UWeaponFireCameraShake::StaticClass(), 1.0f);
 
             // Get camera location and forward vector
             APlayerCameraManager* CameraManager = PC->PlayerCameraManager;

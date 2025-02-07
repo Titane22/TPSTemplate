@@ -24,6 +24,6 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Weapon", meta = (DisplayName = "UpdateAmmoCount"))
 	void UpdateAmmoCount(int32 MaxAmmo, int32 CurrentClip);
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Weapon", meta = (DisplayName = "ParseAmmoCount"))
+	UFUNCTION(BlueprintImplementableEvent, BlueprintCallable, Category = "Weapon", meta = (DisplayName = "ParseAmmoCount"))
 	FString ParseAmmoCount(int32 AmmoCount);
 };

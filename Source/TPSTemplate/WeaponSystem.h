@@ -100,6 +100,11 @@ public:
 
 	void FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);
 
+	bool CheckAmmo();
+
+	float ReloadMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);
+
+	void ReloadCheck();
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
