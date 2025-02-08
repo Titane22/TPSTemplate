@@ -19,8 +19,18 @@ UWeaponSystem::UWeaponSystem()
 
 }
 
-void UWeaponSystem::Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState,FName toSetEquipSocketName, FName toSetUnequipSocketName)
+void UWeaponSystem::Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName)
 {
+	// 현재 무기의 상태를 저장
+	FWeapon_Details CurrentDetails;
+	if (AMasterWeapon* CurrentWeapon = Cast<AMasterWeapon>(CharacterRef->PrimaryChild->GetChildActor()))
+	{
+		if (CurrentWeapon->WeaponSystem)
+		{
+			CurrentDetails = CurrentWeapon->WeaponSystem->Weapon_Details;
+		}
+	}
+
 	MasterWeapon = toSetMasterWeapon;
 	AnimationState = toSetAnimationState;
 
@@ -33,10 +43,29 @@ void UWeaponSystem::Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationStat
 		RifleUnequip(toSetUnequipSocketName);
 		break;
 	}
+
+	// 새로 생성된 무기에 이전 상태를 복원
+	if (AMasterWeapon* NewWeapon = Cast<AMasterWeapon>(CharacterRef->PrimaryChild->GetChildActor()))
+	{
+		if (NewWeapon->WeaponSystem)
+		{
+			NewWeapon->WeaponSystem->Weapon_Details = CurrentDetails;
+		}
+	}
 }
 
 void UWeaponSystem::Pistol_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName)
 {
+	// 현재 무기의 상태를 저장
+	FWeapon_Details CurrentDetails;
+	if (AMasterWeapon* CurrentWeapon = Cast<AMasterWeapon>(CharacterRef->HandgunChild->GetChildActor()))
+	{
+		if (CurrentWeapon->WeaponSystem)
+		{
+			CurrentDetails = CurrentWeapon->WeaponSystem->Weapon_Details;
+		}
+	}
+
 	MasterWeapon = toSetMasterWeapon;
 	AnimationState = toSetAnimationState;
 
@@ -48,6 +77,15 @@ void UWeaponSystem::Pistol_State(AMasterWeapon* toSetMasterWeapon, EAnimationSta
 	case EWeaponState::Unequip:
 		PistolUnequip(toSetUnequipSocketName);
 		break;
+	}
+
+	// 새로 생성된 무기에 이전 상태를 복원
+	if (AMasterWeapon* NewWeapon = Cast<AMasterWeapon>(CharacterRef->HandgunChild->GetChildActor()))
+	{
+		if (NewWeapon->WeaponSystem)
+		{
+			NewWeapon->WeaponSystem->Weapon_Details = CurrentDetails;
+		}
 	}
 }
 
@@ -66,7 +104,6 @@ void UWeaponSystem::RifleEquip(FName SocketName)
 		UE_LOG(LogTemp, Warning, TEXT("UWeaponSystem::RifleEquip PrimaryChild is Null"));
 		return;
 	}
-
 	// Set Child Actor Class to MasterWeapon
 	CharacterRef->PrimaryChild->SetChildActorClass(MasterWeapon->GetClass());
 
@@ -260,7 +297,7 @@ void UWeaponSystem::FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAni
 		FireAnim = RifleAnim;
 		break;
 	}
-	CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(FireAnim);
+	CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(FireAnim, 1.0f);
 }
 
 bool UWeaponSystem::CheckAmmo()
@@ -283,46 +320,46 @@ float UWeaponSystem::ReloadMontage(UAnimMontage* PistolAnim, UAnimMontage* Rifle
 		break;
 	}
 
-	return CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(ReloadAnim);
+	return CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(ReloadAnim, 1.0f);
 }
 
 void UWeaponSystem::ReloadCheck()
 {
-	FWeapon_Data& WeaponData = Weapon_Details.Weapon_Data;
-	if (WeaponData.MaxAmmo > 0)
+	Weapon_Details.Weapon_Data;
+	if (Weapon_Details.Weapon_Data.MaxAmmo > 0)
 	{
-		if (WeaponData.CurrentAmmo == 0)
+		if (Weapon_Details.Weapon_Data.CurrentAmmo == 0)
 		{
-			if (WeaponData.MaxAmmo >= WeaponData.ClipAmmo)
+			if (Weapon_Details.Weapon_Data.MaxAmmo >= Weapon_Details.Weapon_Data.ClipAmmo)
 			{
-				WeaponData.CurrentAmmo = WeaponData.ClipAmmo;
-				WeaponData.MaxAmmo = WeaponData.MaxAmmo - WeaponData.ClipAmmo;
+				Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.ClipAmmo;
+				Weapon_Details.Weapon_Data.MaxAmmo = Weapon_Details.Weapon_Data.MaxAmmo - Weapon_Details.Weapon_Data.ClipAmmo;
 			}
 			else
 			{
-				WeaponData.CurrentAmmo = WeaponData.MaxAmmo;
-				WeaponData.MaxAmmo = 0;
+				Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.MaxAmmo;
+				Weapon_Details.Weapon_Data.MaxAmmo = 0;
 			}
 		}
 		else
 		{
-			if (WeaponData.MaxAmmo >= WeaponData.ClipAmmo)
+			if (Weapon_Details.Weapon_Data.MaxAmmo >= Weapon_Details.Weapon_Data.ClipAmmo)
 			{
-				WeaponData.MaxAmmo = WeaponData.MaxAmmo - (WeaponData.ClipAmmo - WeaponData.CurrentAmmo);
-				WeaponData.CurrentAmmo = WeaponData.ClipAmmo;
+				Weapon_Details.Weapon_Data.MaxAmmo = Weapon_Details.Weapon_Data.MaxAmmo - (Weapon_Details.Weapon_Data.ClipAmmo - Weapon_Details.Weapon_Data.CurrentAmmo);
+				Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.ClipAmmo;
 			}
 			else
 			{
-				int32 RemainAmmo = WeaponData.ClipAmmo - WeaponData.CurrentAmmo;
-				if (RemainAmmo > WeaponData.MaxAmmo)
+				int32 RemainAmmo = Weapon_Details.Weapon_Data.ClipAmmo - Weapon_Details.Weapon_Data.CurrentAmmo;
+				if (RemainAmmo > Weapon_Details.Weapon_Data.MaxAmmo)
 				{
-					WeaponData.CurrentAmmo = WeaponData.CurrentAmmo + WeaponData.MaxAmmo;
-					WeaponData.MaxAmmo = 0;
+					Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.CurrentAmmo + Weapon_Details.Weapon_Data.MaxAmmo;
+					Weapon_Details.Weapon_Data.MaxAmmo = 0;
 				}
 				else
 				{
-					WeaponData.CurrentAmmo = WeaponData.CurrentAmmo + RemainAmmo;
-					WeaponData.MaxAmmo = WeaponData.MaxAmmo - RemainAmmo;
+					Weapon_Details.Weapon_Data.CurrentAmmo = Weapon_Details.Weapon_Data.CurrentAmmo + RemainAmmo;
+					Weapon_Details.Weapon_Data.MaxAmmo = Weapon_Details.Weapon_Data.MaxAmmo - RemainAmmo;
 				}
 			}
 		}

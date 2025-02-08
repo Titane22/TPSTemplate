@@ -7,6 +7,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Public/AnimationState.h"
 #include "Logging/LogMacros.h"
+#include "Components/TimelineComponent.h" 
 #include "TPSTemplateCharacter.generated.h"
 
 // 전방 선언
@@ -77,7 +78,22 @@ class ATPSTemplateCharacter : public ACharacter
 	UInputAction* ShootAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* AimAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ReloadAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SprintAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* CrouchAction;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* DodgeAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* CameraChangeAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UWeaponSystem* WeaponSystem;
@@ -85,6 +101,20 @@ class ATPSTemplateCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	class UHealthComponent* HealthComponent;
 
+	UPROPERTY()
+	FTimeline CrouchTimeline;
+
+	UPROPERTY()
+	FTimeline AimTimeline;
+
+	UPROPERTY()
+	FTimeline ShoulderCameraTimeline;
+
+	UFUNCTION()
+	void UpdateAimView(float Value);
+
+	UFUNCTION()
+	void PlayDodgeMontage(UAnimMontage* MontageToPlay);
 
 public:
 	ATPSTemplateCharacter();
@@ -114,10 +144,10 @@ public:
 	bool IsDodging;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool DodgeForward;
+	float DodgeForward;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool DodgeRight;
+	float DodgeRight;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool Right;
@@ -200,6 +230,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	class ULocomotionAnimInstance* LocomotionBP;
 
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
+	UCurveFloat* CrouchCurve;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
+	UCurveFloat* AimCurve;
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
+	UCurveFloat* ShoulderCameraCurve;
+
 protected:
 
 	/** Called for movement input */
@@ -221,7 +260,31 @@ protected:
 	void ShootFire(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void Aim(const FInputActionValue& Value);
+
+	UFUNCTION()
 	void Reload();
+
+	UFUNCTION()
+	void Sprint(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void SprintCompleted(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void ToggleCrouch(const FInputActionValue& Value);
+
+	UFUNCTION()
+	void Dodge();
+
+	UFUNCTION()
+	void FlipFlapCameraChange();
+
+	UFUNCTION()
+	void ShoulderCameraChange(float Value);
+
+	UFUNCTION()
+	void UpdateCrouchHeight();
 
 	void StopFire();
 
@@ -239,6 +302,14 @@ protected:
 
 	void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
 
+	UFUNCTION()
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	
+	UFUNCTION()
+	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
@@ -246,6 +317,7 @@ protected:
 	// To add mapping context
 	virtual void BeginPlay();
 
+	virtual void Tick(float DeltaTime);
 public:
 	/** Returns MainCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
@@ -253,8 +325,5 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns HealthComponent subobject **/
 	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
-
-	UFUNCTION()
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 };
 

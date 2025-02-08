@@ -28,6 +28,7 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 //////////////////////////////////////////////////////////////////////////
 // ATPSTemplateCharacter
 
+
 ATPSTemplateCharacter::ATPSTemplateCharacter()
 {
 	// Capsule Component Settings
@@ -117,12 +118,8 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 void ATPSTemplateCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
 	// MEMO: When initialized in the constructor instead of BeginPlay, 
 	// RifleData becomes NULL again
-	// TODO: MasterWeapon���� �ʱ�ȭ ���ٶ� �̻������ ����
-	
-
 	if (Primary)
 	{
 		Primary->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("RifleHost_Socket"));
@@ -150,6 +147,31 @@ void ATPSTemplateCharacter::BeginPlay()
 		}
 	}
 
+	if (CrouchCurve)
+	{
+		// TODO: Apply Crouch Timeline
+		FOnTimelineFloat TimelineCallback;
+		TimelineCallback.BindUFunction(this, FName("UpdateCrouchHeight"));
+		CrouchTimeline.AddInterpFloat(CrouchCurve, TimelineCallback);
+	}
+
+	if (AimCurve)
+	{
+		FOnTimelineFloat TimelineCallback;
+		TimelineCallback.BindUFunction(this, FName("UpdateAimView"));
+		AimTimeline.AddInterpFloat(AimCurve, TimelineCallback);
+		AimTimeline.SetPlayRate(4.0f);
+	}
+
+	if (CrouchCurve)
+	{
+		// TODO: Apply Crouch Timeline
+		FOnTimelineFloat TimelineCallback;
+		TimelineCallback.BindUFunction(this, FName("ShoulderCameraChange"));
+		ShoulderCameraTimeline.AddInterpFloat(CrouchCurve, TimelineCallback);
+		ShoulderCameraTimeline.SetPlayRate(4.0f);
+	}
+
 	// Sequence 1
 	WeaponSystem->CharacterRef = this;
 	HealthComponent->CharacterRef = this;
@@ -175,6 +197,17 @@ void ATPSTemplateCharacter::BeginPlay()
 			UE_LOG(LogTemp, Warning, TEXT("Failed to create UICrosshair widget"));
 		}
 	}
+}
+
+void ATPSTemplateCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	CrouchTimeline.TickTimeline(DeltaTime);
+	AimTimeline.TickTimeline(DeltaTime);
+	ShoulderCameraTimeline.TickTimeline(DeltaTime);
+
+	UpdateCrouchHeight();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -208,8 +241,15 @@ void ATPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 		EnhancedInputComponent->BindAction(SwitchWeaponsAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::SwitchWeapons);
 
 		EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::ShootFire);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Aim);
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Reload);
 
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Sprint);
+		EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &ATPSTemplateCharacter::SprintCompleted);
+
+		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &ATPSTemplateCharacter::ToggleCrouch);
+		EnhancedInputComponent->BindAction(CameraChangeAction, ETriggerEvent::Started, this, &ATPSTemplateCharacter::FlipFlapCameraChange);
+		EnhancedInputComponent->BindAction(DodgeAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Dodge);
 	}
 	else
 	{
@@ -238,6 +278,8 @@ void ATPSTemplateCharacter::Move(const FInputActionValue& Value)
 		// add movement 
 		AddMovementInput(ForwardDirection, MovementVector.Y);
 		AddMovementInput(RightDirection, MovementVector.X);
+		DodgeForward = MovementVector.Y;
+		DodgeRight = MovementVector.X;
 	}
 }
 
@@ -277,6 +319,10 @@ void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
 	if (!CanSwitchWeapon() || IsPrimaryEquip)
         return;
 
+	if (IsPistolEquip)
+	{
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+	}
     bCanSwitchWeapon = false;
     IsPistolEquip = false;
     
@@ -284,7 +330,7 @@ void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
 
     WeaponSystem->Pistol_State(WeaponSystem->PistolData->WeaponClass, EAnimationState::Pistol, EWeaponState::Unequip, FName(""), FName("PistolHost_Socket"));
     IsPrimaryEquip = true;
-
+	
     // 무기 상태 변경 후 약간의 지연을 두고 UI 업데이트
     FTimerHandle TimerHandle;
     GetWorld()->GetTimerManager().SetTimer(
@@ -298,7 +344,9 @@ void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
     );
 
     WeaponSystem->Rifle_State(WeaponSystem->RifleData->WeaponClass, EAnimationState::RifleShotgun, EWeaponState::Equip, FName("Rifle_Socket"), FName(""));
-
+	{
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+	}
     // Play Montage with Delay
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (!AnimInstance)
@@ -416,7 +464,7 @@ UUserWidget* ATPSTemplateCharacter::AddWeaponUI(UWeaponDataAsset* WeaponData)
 				return nullptr;
 			}
 
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Current Ammo: %d"), CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo));
+			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Current Ammo: %d"), CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo));
 			CurrentWeaponUI->SetWeaponData(WeaponData->WeaponUITexture,
 				WeaponData->WeaponName,
 				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
@@ -438,17 +486,7 @@ void ATPSTemplateCharacter::OnMontageEnded(UAnimMontage* Montage, bool bInterrup
 	// After Montage Ended
 	if (!bInterrupted)
 	{
-		// Delay Montage
-		FTimerHandle TimerHandle;
-		GetWorld()->GetTimerManager().SetTimer(
-			TimerHandle,
-			[this]()
-			{
-				bCanSwitchWeapon = true;
-			},
-			0.25f,  // 0.25sec delay
-			false
-		);
+		bCanSwitchWeapon = true;
 	}
 }
 
@@ -456,6 +494,22 @@ void ATPSTemplateCharacter::ShootFire(const FInputActionValue& Value)
 {
 	bFiring = Value.Get<bool>();
     HandleFiring();
+}
+
+void ATPSTemplateCharacter::Aim(const FInputActionValue& Value)
+{
+	if (!IsPrimaryEquip && !IsPistolEquip)
+		return;
+	IsAim = Value.Get<bool>();
+
+	if (IsAim)
+	{
+		AimTimeline.Play();
+	}
+	else
+	{
+		AimTimeline.Reverse();
+	}
 }
 
 void ATPSTemplateCharacter::Reload()
@@ -481,10 +535,25 @@ void ATPSTemplateCharacter::Reload()
     MasterWeapon->Reload();
 }
 
+void ATPSTemplateCharacter::Sprint(const FInputActionValue& Value)
+{
+	if (!GetCharacterMovement()->IsCrouching() && !bInteracting)
+	{
+		IsSprint = true;
+		GetCharacterMovement()->MaxWalkSpeed = 600.0f;
+	}
+}
+
+void ATPSTemplateCharacter::SprintCompleted(const FInputActionValue& Value)
+{
+	IsSprint = false;  // 스프린트 종료
+	GetCharacterMovement()->MaxWalkSpeed = 300.0f;
+}
+
 bool ATPSTemplateCharacter::CanFire()
 {
 	
-	bool bCanShoot = !IsSprint && !IsDodging && CanJump();
+	bool bCanShoot = !IsSprint && !IsDodging && CanJump() && bCanSwitchWeapon;
 	if (bCanShoot || IsCrouch)
 		return true;
 	else
@@ -510,15 +579,13 @@ void ATPSTemplateCharacter::HandleFiring()
 
     if (IsPrimaryEquip)
     {
-		AActor* CurrentWeaponActor = PrimaryChild->GetChildActor();
-		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(CurrentWeaponActor);
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 		UWeaponDataAsset* CurrentWeaponDataAsset = WeaponSystem->RifleData;
 		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
     }
 	else if(IsPistolEquip)
 	{
-		AActor* CurrentWeaponActor = HandgunChild->GetChildActor();
-		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(CurrentWeaponActor);
+		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 		UWeaponDataAsset* CurrentWeaponDataAsset = WeaponSystem->PistolData;
 		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
 	}
@@ -538,12 +605,12 @@ void ATPSTemplateCharacter::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData
 	// Process next shot based on fire mode
 	float FireDelay = CurrentWeaponDataAsset->FireRate;
 	EFireMode CurrentFireMode = CurrentWeaponDataAsset->FireMode;
+	FTimerHandle TimerHandle;
 
 	switch (CurrentFireMode)
 	{
 	case EFireMode::FullAuto:
 		// Auto-fire is scheduled with a timer
-		FTimerHandle TimerHandle;
 		GetWorld()->GetTimerManager().SetTimer(
 			TimerHandle,
 			[this]()
@@ -556,5 +623,148 @@ void ATPSTemplateCharacter::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData
 			false
 		);
 		break;
+	default:
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			[this]()
+			{
+				bCanFire = true;
+			},
+			FireDelay,
+			false
+		);
+		break;
+	}
+}
+
+void ATPSTemplateCharacter::ToggleCrouch(const FInputActionValue& Value)
+{
+    if (!bInteracting)  // 다른 상호작용 중이 아닐 때만
+    {
+        if (!IsCrouch)
+        {
+			IsCrouch = true;
+			Crouch();
+			CrouchTimeline.Play();
+        }
+        else
+        {
+			IsCrouch = false;
+			UnCrouch();
+			CrouchTimeline.Reverse();  
+        }
+    }
+}
+
+void ATPSTemplateCharacter::UpdateAimView(float Value)
+{
+	CameraBoom->TargetArmLength = FMath::Lerp(TargetArmLengths.X, TargetArmLengths.Y, Value);
+	
+	CameraBoom->SocketOffset = FMath::Lerp(FVector(0.0f, CameraBoom->SocketOffset.Y, ShoulderZOffset), 
+		FVector(0.0f, CameraBoom->SocketOffset.Y, ShoulderZOffset), 
+		Value);
+}
+
+void ATPSTemplateCharacter::PlayDodgeMontage(UAnimMontage* MontageToPlay)
+{
+    if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
+    {
+        AnimInstance->Montage_Play(MontageToPlay);
+		IsDodging = true;
+
+        FOnMontageEnded CompleteDelegate;
+        CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnDodgeMontageEnded);
+        AnimInstance->Montage_SetEndDelegate(CompleteDelegate, MontageToPlay);
+
+        FOnMontageBlendingOutStarted BlendOutDelegate;
+        BlendOutDelegate.BindUObject(this, &ATPSTemplateCharacter::OnDodgeMontageInterrupted);
+        AnimInstance->Montage_SetBlendingOutDelegate(BlendOutDelegate, MontageToPlay);
+    }
+}
+
+void ATPSTemplateCharacter::OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+    // 몽타주가 정상적으로 끝났을 때의 처리
+    if (!bInterrupted)
+    {
+        IsDodging = false;
+    }
+}
+
+void ATPSTemplateCharacter::OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
+{
+    IsDodging = false;
+}
+
+void ATPSTemplateCharacter::Dodge()
+{
+	if (bInteracting || GetCharacterMovement()->IsFalling())
+		return;
+
+	if (DodgeForward != 0.0f)
+	{
+		UAnimMontage* MontageToPlay = nullptr;
+		if (DodgeForward > 0.0f)
+		{
+			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_F_Montage")));
+		}
+		else
+		{
+			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_B_Montage")));
+		}
+
+		PlayDodgeMontage(MontageToPlay);
+	}
+
+	if (DodgeRight != 0.0f)
+	{
+		UAnimMontage* MontageToPlay = nullptr;
+		if (DodgeRight > 0.0f)
+		{
+			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_R_Montage")));
+		}
+		else
+		{
+			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_L_Montage")));
+		}
+
+		PlayDodgeMontage(MontageToPlay);
+	}
+}
+
+void ATPSTemplateCharacter::FlipFlapCameraChange()
+{
+	if (RightShoulder)
+		return;
+	static bool FlipFlap = false;
+	FlipFlap = !FlipFlap;  // 현재 값의 반대로 설정
+
+	if (FlipFlap)
+	{
+		ShoulderCameraTimeline.Play();
+	}
+	else
+	{
+		ShoulderCameraTimeline.Reverse();
+	}
+}
+
+void ATPSTemplateCharacter::ShoulderCameraChange(float Value)
+{
+	CameraBoom->SocketOffset = FMath::Lerp(
+		FVector(0.0f, ShoulderYOffset, ShoulderZOffset),
+		FVector(0.0f, ShoulderYOffset * -1.0f, ShoulderZOffset), 
+		Value);
+}
+
+void ATPSTemplateCharacter::UpdateCrouchHeight()
+{
+	if (IsCrouch)
+	{
+		GetCapsuleComponent()->SetCapsuleRadius(33.0f);
+	}
+	else
+	{
+		GetCapsuleComponent()->SetCapsuleRadius(35.0f);
 	}
 }

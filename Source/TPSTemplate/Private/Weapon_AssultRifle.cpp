@@ -33,7 +33,7 @@ void AWeapon_AssultRifle::BeginPlay()
     bReloading = false;
     bAutoReload = true;
 
-    WeaponSystem->MasterWeapon = this;
+    WeaponSystem->MasterWeapon = nullptr;
     WeaponSystem->AnimationState = EAnimationState::Unarmed;
     WeaponSystem->Weapon_Details = {
         FWeapon_Data{

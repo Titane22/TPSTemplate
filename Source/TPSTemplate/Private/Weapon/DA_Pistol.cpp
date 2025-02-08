@@ -19,7 +19,7 @@ UDA_Pistol::UDA_Pistol()
     FireRate = 0.1f;
 
     // Ballistics
-    BulletSpread = 2.0f;
+    BulletSpread = 6.0f;
     Damage = 20.0f;
     MaxRange = 5000.0f;
 
@@ -28,7 +28,7 @@ UDA_Pistol::UDA_Pistol()
 
     static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyFireMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Pistol/Fire/MM_Pistol_Fire_Montage"));
     static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponFireMontageAsset(TEXT("/Game/Weapons/Pistol/Animations/Weap_Pistol_Fire"));
-    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyReloadMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Pistol/Fire/MM_Pistol_Reload_Montage"));
+    static ConstructorHelpers::FObjectFinder<UAnimMontage> BodyReloadMontageAsset(TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Reload"));
     static ConstructorHelpers::FObjectFinder<UAnimMontage> WeaponReloadMontageAsset(TEXT("/Game/Weapons/Pistol/Animations/Weap_Pistol_Reload"));
     if (BodyFireMontageAsset.Succeeded())
     {
