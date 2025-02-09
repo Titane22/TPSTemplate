@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "UObject/ConstructorHelpers.h"
 #include "../TPSTemplateCharacter.h"
+#include "../ShooterPlayerController.h"
 #include "./Widget/W_DynamicWeaponHUD.h"
 
 AWeapon_AssultRifle::AWeapon_AssultRifle()
@@ -109,11 +110,11 @@ void AWeapon_AssultRifle::Fire()
 {
     if (bReloading)
         return;
-
+    
     if (WeaponSystem->FireCheck(WeaponSystem->Weapon_Details.Weapon_Data.Ammo_Count))
     {
         // Play camera shake effect for dry fire
-        if (APlayerController* PC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+        if (AShooterPlayerController* PC = Cast<AShooterPlayerController>(GetWorld()->GetFirstPlayerController()))
         {
             FVector EpicenterLocation = GetActorLocation();
             PC->ClientStartCameraShake(UWeaponFireCameraShake::StaticClass(), 1.0f);
@@ -122,7 +123,7 @@ void AWeapon_AssultRifle::Fire()
             APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
             if (!CameraManager)
                 return;
-                
+
             FVector StartLocation = CameraManager->GetCameraLocation();
             FVector ForwardVector = CameraManager->GetActorForwardVector();
             if (!WeaponData)

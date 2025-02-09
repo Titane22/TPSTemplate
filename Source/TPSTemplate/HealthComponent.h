@@ -25,7 +25,6 @@ protected:
 
 	float Health;
 
-
 	bool StartWithMaxHealth;
 
 public:	
@@ -34,4 +33,7 @@ public:
 	UFUNCTION()
 	bool ApplyDamage(float Damage);
 
+	float GetCurrentHealth();
+
+	float GetMaxHealth();
 };

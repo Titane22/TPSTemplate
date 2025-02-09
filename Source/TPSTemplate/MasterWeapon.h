@@ -9,6 +9,7 @@
 
 class UWeaponDataAsset;
 class ATPSTemplateCharacter; 
+class ATPSTemplate_Player;
 
 UCLASS()
 class TPSTEMPLATE_API AMasterWeapon : public AActor

@@ -70,15 +70,17 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         return false;
     }
     // Hit된 액터에서 ActorComponent를 찾음
-    UActorComponent* HitReceiverComponent = HitActor->GetComponentByClass(UActorComponent::StaticClass());
+    UActorComponent* HitReceiverComponent = nullptr; // TODO: Hit Receiver Component
     if (!HitReceiverComponent)
     {
+        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
         ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(HitActor);
         if (!Player)
         {
+            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("!Player")));
             // Apply Damage Inner
             UGameplayStatics::ApplyDamage(
-                Player,                    // Damaged Actor
+                HitActor,                    // Damaged Actor
                 WeaponData->Damage,        // Base Damage
                 GetInstigatorController(), // Event Instigator
                 this,                      // Damage Causer
@@ -87,9 +89,18 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
             ValidHit = false;
             return false;
         }
+        //UGameplayStatics::ApplyDamage(
+        //    Player,                    // Damaged Actor
+        //    WeaponData->Damage,        // Base Damage
+        //    GetInstigatorController(), // Event Instigator
+        //    this,                      // Damage Causer
+        //    nullptr                    // Damage Type Class
+        //);
 
+        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Player->Dead: %d"), Player->Dead));
         if (!Player->Dead)
         {
+            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
             // Apply Damage
             Player->GetHealthComponent()->ApplyDamage(WeaponData->Damage);
             // TODO: Play Sound 2D

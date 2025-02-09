@@ -36,12 +36,12 @@ void UHealthComponent::BeginPlay()
 bool UHealthComponent::ApplyDamage(float Damage)
 {
 	Health = Health - Damage;
-
+	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Hit!!!!"));
 	if (Health <= 0)
 	{
-		// TODO: CharacterRef->StartRagdoll
+		CharacterRef->StartRagdoll();
 
-		// TODO: CharacterRef->Die();
+		CharacterRef->Die();
 
 		return true;
 	}
@@ -49,5 +49,15 @@ bool UHealthComponent::ApplyDamage(float Damage)
 	{
 		return false;
 	}
+}
+
+float UHealthComponent::GetCurrentHealth()
+{
+	return Health;
+}
+
+float UHealthComponent::GetMaxHealth()
+{
+	return MaxHealth;
 }
 

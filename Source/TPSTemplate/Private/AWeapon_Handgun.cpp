@@ -135,6 +135,7 @@ void AAWeapon_Handgun::Fire()
             //    1.0f                 // 두께
             //);
 
+
             // Trace #1: From camera forward
             FHitResult HitResult;
             if (GetWorld()->LineTraceSingleByChannel(
@@ -225,7 +226,7 @@ void AAWeapon_Handgun::FireBullet(FHitResult Hit, bool bReturnHit)
             GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("WeaponSystem or WeaponSystem->CharacterRef is NULL"));
             return;
         }
-        QueryParams.AddIgnoredActor(Cast<AActor>(WeaponSystem->CharacterRef));
+        //QueryParams.AddIgnoredActor(Cast<AActor>(WeaponSystem->CharacterRef));
 
         //DrawDebugLine(
         //    GetWorld(),           // 월드

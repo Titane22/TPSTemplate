@@ -38,6 +38,7 @@ class ATPSTemplateCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
+protected:
 	/** Camera boom positioning the camera behind the character */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
@@ -239,6 +240,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
 	UCurveFloat* ShoulderCameraCurve;
 
+	UFUNCTION()
+	void Die();
+
+	UFUNCTION()
+	void StartRagdoll();
 protected:
 
 	/** Called for movement input */
@@ -248,13 +254,13 @@ protected:
 	void Look(const FInputActionValue& Value);
 			
 	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	void SwitchWeapons();
+	virtual void SwitchWeapons();
 
 	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	void SwitchToPrimaryWeapon();
+	virtual void SwitchToPrimaryWeapon();
 
 	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	void SwitchToHandgunWeapon();
+	virtual void SwitchToHandgunWeapon();
 
 	UFUNCTION()
 	void ShootFire(const FInputActionValue& Value);
@@ -294,30 +300,16 @@ protected:
 
 	bool CanSwitchWeapon();
 
-	UFUNCTION()
-	void ClearWeaponUI();
+	virtual void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
 
 	UFUNCTION()
-	UUserWidget* AddWeaponUI(UWeaponDataAsset* WeaponData);
-
-	void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
-
-	UFUNCTION()
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	UFUNCTION()
-	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	
-	UFUNCTION()
-	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
-protected:
+	void ImpactOnLand();
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
-	// To add mapping context
-	virtual void BeginPlay();
 
 	virtual void Tick(float DeltaTime);
+
+	virtual void OnLanded(const FHitResult& Hit);
 public:
 	/** Returns MainCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
@@ -325,5 +317,11 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 	/** Returns HealthComponent subobject **/
 	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
+
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
 };
 
