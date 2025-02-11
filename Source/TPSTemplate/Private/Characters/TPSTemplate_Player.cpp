@@ -20,6 +20,15 @@
 #include "../Public/Weapon/DA_Rifle.h"
 #include "../Public/Weapon/DA_Pistol.h"
 #include "../Public/Widget/W_DynamicWeaponHUD.h"
+#include "Library/InteractiveType.h"
+#include "Weapon/Interactor.h"
+#include "Weapon/IWeaponPickup.h"
+
+ATPSTemplate_Player::ATPSTemplate_Player()
+	:Super()
+{
+
+}
 
 void ATPSTemplate_Player::BeginPlay()
 {
@@ -80,7 +89,6 @@ void ATPSTemplate_Player::BeginPlay()
 
 	// Sequence 1
 	WeaponSystem->CharacterRef = this;
-	HealthComponent->CharacterRef = this;
 
 	// Sequence 2
 	CameraBoom->SocketOffset = FVector(0.0f, ShoulderYOffset, ShoulderZOffset);
@@ -101,6 +109,17 @@ void ATPSTemplate_Player::BeginPlay()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to create UICrosshair widget"));
 		}
+	}
+
+}
+
+void ATPSTemplate_Player::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent); 
+	
+	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Triggered, this, &ATPSTemplateCharacter::Interact);
 	}
 }
 
@@ -159,17 +178,17 @@ void ATPSTemplate_Player::SwitchWeapons()
 
 void ATPSTemplate_Player::SwitchToPrimaryWeapon()
 {
-	/* ¹«±â ÀüÈ¯ ½Ã Å¸ÀÌ¹Ö ÀÌ½´ ÇØ°á
+	/* ë¬´ê¸° ì „í™˜ ì‹œ íƒ€ì´ë° ì´ìŠˆ í•´ê²°
 	 *
-	 * ¹®Á¦ ¿øÀÎ:
-	 * 1. AddWeaponUI ÇÔ¼ö°¡ ¹«±â »óÅÂ º¯°æ(Weapon_State)°ú µ¿½Ã¿¡ È£ÃâµÊ
-	 * 2. Weapon_State¿¡¼­ Child Actor ÄÄÆ÷³ÍÆ®ÀÇ ¼³Á¤ÀÌ ºñµ¿±âÀûÀ¸·Î ÀÌ·ç¾îÁü
-	 * 3. ±× °á°ú AddWeaponUI°¡ È£ÃâµÉ ¶§ GetChildActor()°¡ ¾ÆÁ÷ NULLÀ» ¹ÝÈ¯
+	 * ë¬¸ì œ ìƒí™©:
+	 * 1. AddWeaponUI í•¨ìˆ˜ì™€ ë¬´ê¸° ìƒíƒœ ë³€ê²½(Weapon_State)ì´ ë™ì‹œì— í˜¸ì¶œë¨
+	 * 2. Weapon_Stateì—ì„œ Child Actor ì»´í¬ë„ŒíŠ¸ì˜ ìƒì„±ì´ ë¹„ë™ê¸°ì ìœ¼ë¡œ ì´ë£¨ì–´ì§
+	 * 3. ê·¸ ê²°ê³¼ AddWeaponUIê°€ í˜¸ì¶œë  ë•Œ GetChildActor()ê°€ ì•„ì§ NULLì„ ë°˜í™˜
 	 *
-	 * ÇØ°á ¹æ¹ý:
-	 * 1. AddWeaponUI È£ÃâÀ» Å¸ÀÌ¸Ó¸¦ »ç¿ëÇØ ¾à°£ Áö¿¬½ÃÅ´ (0.1ÃÊ)
-	 * 2. ÀÌ¸¦ ÅëÇØ Child Actor ÄÄÆ÷³ÍÆ®°¡ ¿ÏÀüÈ÷ ÃÊ±âÈ­µÈ ÈÄ UI ¾÷µ¥ÀÌÆ®
-	 * 3. BeginPlay¿¡¼­´Â Á¤»óÀûÀ¸·Î ÃÊ±âÈ­µÇ¾úÁö¸¸, ¹«±â ÀüÈ¯ ½Ã¿¡¸¸ ¹ß»ýÇÏ´ø ¹®Á¦ ÇØ°á
+	 * í•´ê²° ë°©ì•ˆ:
+	 * 1. AddWeaponUI í˜¸ì¶œì„ íƒ€ì´ë¨¸ë¡œ ì•½ê°„ì˜ ì§€ì—°ì‹œí‚´ (0.1ì´ˆ)
+	 * 2. ì´ë¥¼ í†µí•´ Child Actor ì»´í¬ë„ŒíŠ¸ê°€ ì™„ì „ížˆ ì´ˆê¸°í™”ëœ í›„ UI ì—…ë°ì´íŠ¸
+	 * 3. BeginPlayì—ì„œëŠ” ì •ìƒì ìœ¼ë¡œ ì´ˆê¸°í™”ë˜ì—ˆìœ¼ë‚˜, ë¬´ê¸° ì „í™˜ ì‹œì—ë§Œ ë°œìƒí•˜ëŠ” ë¬¸ì œ í•´ê²°
 	 */
 
 	if (!CanSwitchWeapon() || IsPrimaryEquip)
@@ -187,7 +206,7 @@ void ATPSTemplate_Player::SwitchToPrimaryWeapon()
 	WeaponSystem->Pistol_State(WeaponSystem->PistolData->WeaponClass, EAnimationState::Pistol, EWeaponState::Unequip, FName(""), FName("PistolHost_Socket"));
 	IsPrimaryEquip = true;
 
-	// ¹«±â »óÅÂ º¯°æ ÈÄ ¾à°£ÀÇ Áö¿¬À» µÎ°í UI ¾÷µ¥ÀÌÆ®
+	// ë¬´ê¸° ì „í™˜ ì‹œ íƒ€ì´ë¨¸ë¡œ ì•½ê°„ì˜ ì§€ì—°ì‹œí‚´ (0.1ì´ˆ)
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
@@ -195,7 +214,7 @@ void ATPSTemplate_Player::SwitchToPrimaryWeapon()
 		{
 			AddWeaponUI(WeaponSystem->RifleData);
 		},
-		0.1f,  // Child Actor°¡ ¿ÏÀüÈ÷ ÃÊ±âÈ­µÇµµ·Ï Áö¿¬
+		0.1f,  // Child Actor ì´ˆê¸°í™”ë  ë•Œê¹Œì§€ ëŒ€ê¸°
 		false
 	);
 
@@ -238,7 +257,7 @@ void ATPSTemplate_Player::SwitchToHandgunWeapon()
 	WeaponSystem->Rifle_State(WeaponSystem->RifleData->WeaponClass, EAnimationState::RifleShotgun, EWeaponState::Unequip, FName(""), FName("RifleHost_Socket"));
 	IsPistolEquip = true;
 
-	// ¹«±â »óÅÂ º¯°æ ÈÄ ¾à°£ÀÇ Áö¿¬À» µÎ°í UI ¾÷µ¥ÀÌÆ®
+	// ë¬´ê¸° ì „í™˜ ì‹œ íƒ€ì´ë¨¸ë¡œ ì•½ê°„ì˜ ì§€ì—°ì‹œí‚´ (0.1ì´ˆ)
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
@@ -247,7 +266,7 @@ void ATPSTemplate_Player::SwitchToHandgunWeapon()
 			// Add Weapon UI
 			AddWeaponUI(WeaponSystem->PistolData);
 		},
-		0.1f,  // 0.1ÃÊ Áö¿¬
+		0.1f,  // 0.1ì´ˆ ëŒ€ê¸°
 		false
 	);
 
@@ -317,6 +336,154 @@ void ATPSTemplate_Player::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponDataAs
 			FireDelay,
 			false
 		);
+		break;
+	}
+}
+
+void ATPSTemplate_Player::Interact()
+{
+	if (!InteractorComponent->HasInteraction)
+		return;
+	switch (InteractorComponent->GetInteractionType())
+	{
+	case EInteractiveType::Default:
+		InteractorComponent->StartInteraction(GetController());
+		break;
+	case EInteractiveType::Pickup:
+		
+		break;
+	case EInteractiveType::WeaponPickup:
+		AIWeaponPickup* PickupToWeapon = Cast<AIWeaponPickup>(InteractorComponent->InteractionActor);
+		
+		if (PickupToWeapon)
+		{
+			AMasterWeapon* MasterWeapon = nullptr;
+			FVector InteractionActorLocation = InteractorComponent->InteractionActor->GetActorLocation();
+
+			FTransform InteractionSpawnTransform;
+			InteractionSpawnTransform.SetLocation(FVector(InteractionActorLocation.X, InteractionActorLocation.Y, InteractionActorLocation.Z + 20.0f));
+			InteractionSpawnTransform.SetRotation(FQuat::Identity);
+			InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (!AnimInstance)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("ATPSTemplate_Player::Interact()::AnimInstance is NULL"));
+				return;
+			}
+
+			switch (PickupToWeapon->WeaponData->WeaponType)
+			{
+			case EWeaponType::Pistol:
+				MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+				if (!MasterWeapon)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Interact()::EWeaponType::Pistol::MasterWeapon Is NULL"));
+					return;
+				}
+				
+				GetWorld()->SpawnActor<AActor>(
+					MasterWeapon->WeaponPickupClass,
+					InteractionSpawnTransform
+				);
+
+				if (IsPrimaryEquip)
+				{
+					IsPrimaryEquip = false;
+					WeaponSystem->Rifle_State(
+						WeaponSystem->RifleData->WeaponClass,
+						EAnimationState::Unarmed,
+						EWeaponState::Unequip,
+						FName(""),
+						FName("RifleHost_Socket")
+					);
+				}
+				HandgunChild->SetChildActorClass(PickupToWeapon->WeaponData->WeaponClass->StaticClass());
+				WeaponSystem->PistolData = PickupToWeapon->WeaponData;
+				IsPistolEquip = true;
+
+				AddWeaponUI(WeaponSystem->PistolData);
+				LocomotionBP->LeftHandIKOffset = WeaponSystem->PistolData->LeftHandIKOffset;
+				WeaponSystem->Pistol_State(
+					WeaponSystem->PistolData->WeaponClass,
+					EAnimationState::Pistol,
+					EWeaponState::Equip,
+					FName("Pistol_Socket"),
+					FName("")
+				);
+
+				if (AnimInstance)
+				{
+					UAnimMontage* PistolEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2")));
+					// Play Montage
+					AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
+
+					// Set Montage End Delegate
+					FOnMontageEnded CompleteDelegate;
+					CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnMontageEnded);
+					AnimInstance->Montage_SetEndDelegate(CompleteDelegate, PistolEquipMontage);
+
+					InteractorComponent->StartInteraction(GetController());
+				}
+				break;
+			case EWeaponType::RifleAndShotgun:
+				MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
+				if (!MasterWeapon)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Interact()::EWeaponType::RifleAndShotgun::MasterWeapon Is NULL"));
+					return;
+				}
+				if (!MasterWeapon)
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("MasterWeapon is NULL"));
+				else if(!MasterWeapon->WeaponPickupClass)
+					GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, TEXT("WeaponPickupClass is NULL"));
+
+				GetWorld()->SpawnActor<AActor>(
+					MasterWeapon->WeaponPickupClass,
+					InteractionSpawnTransform
+				);
+				if (IsPistolEquip)
+				{
+					IsPistolEquip = false;
+					WeaponSystem->Pistol_State(
+						WeaponSystem->PistolData->WeaponClass,
+						EAnimationState::Unarmed,
+						EWeaponState::Unequip,
+						FName(""),
+						FName("PistolHost_Socket")
+					);
+				}
+				HandgunChild->SetChildActorClass(PickupToWeapon->WeaponData->WeaponClass->StaticClass());
+				WeaponSystem->RifleData = PickupToWeapon->WeaponData;
+				IsPrimaryEquip = true;
+
+				AddWeaponUI(WeaponSystem->RifleData);
+				LocomotionBP->LeftHandIKOffset = WeaponSystem->RifleData->LeftHandIKOffset;
+				WeaponSystem->Rifle_State(
+					WeaponSystem->RifleData->WeaponClass,
+					EAnimationState::RifleShotgun,
+					EWeaponState::Equip,
+					FName("Rifle_Socket"),
+					FName("")
+				);
+
+				if (AnimInstance) 
+				{
+					UAnimMontage* RifleEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1")));
+					// Play Montage
+					AnimInstance->Montage_Play(RifleEquipMontage, 1.0f);
+
+					// Set Montage End Delegate
+					FOnMontageEnded CompleteDelegate;
+					CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnMontageEnded);
+					AnimInstance->Montage_SetEndDelegate(CompleteDelegate, RifleEquipMontage);
+
+					InteractorComponent->StartInteraction(GetController());
+				}
+				
+				break;
+			}
+		}
 		break;
 	}
 }

@@ -17,11 +17,12 @@ class UInputMappingContext;
 class UInputAction;
 class AMasterWeapon;
 class UHealthComponent;
+class UInteractor;
 class UWeaponSystem;
-struct FInputActionValue;
 class ULocomotionAnimInstance;
 class UWeaponDataAsset;
 class UW_DynamicWeaponHUD;
+struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
@@ -48,11 +49,11 @@ protected:
 	UCameraComponent* FollowCamera;
 
 	/** Primary Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USceneComponent* Primary;
 
 	/** Hand-Gun Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USceneComponent* Handgun;
 	
 	/** MappingContext */
@@ -94,13 +95,19 @@ protected:
 	UInputAction* DodgeAction;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* InteractionAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CameraChangeAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	class UWeaponSystem* WeaponSystem;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	class UHealthComponent* HealthComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	class UInteractor* InteractorComponent;
 
 	UPROPERTY()
 	FTimeline CrouchTimeline;
@@ -245,6 +252,8 @@ public:
 
 	UFUNCTION()
 	void StartRagdoll();
+
+	virtual void Interact();
 protected:
 
 	/** Called for movement input */
@@ -283,6 +292,7 @@ protected:
 	UFUNCTION()
 	void Dodge();
 
+
 	UFUNCTION()
 	void FlipFlapCameraChange();
 
@@ -306,6 +316,8 @@ protected:
 	void ImpactOnLand();
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual void BeginPlay();
 
 	virtual void Tick(float DeltaTime);
 

@@ -20,6 +20,8 @@
 #include "./Public/AWeapon_Handgun.h"
 #include "./Public/Weapon/DA_Rifle.h"
 #include "./Public/Weapon/DA_Pistol.h"
+#include "./Public/Weapon/Interactor.h"
+#include "./Public/Weapon/IWeaponPickup.h"
 #include "./Public/Widget/W_DynamicWeaponHUD.h"
 #include "Blueprint/UserWidget.h"
 
@@ -38,7 +40,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	// Controller Rotation Settings
 	// Configure controller rotation to not directly affect the character
 	bUseControllerRotationPitch = false;  // Disable pitch rotation
-	bUseControllerRotationYaw = true;     // Disable yaw rotation
+	bUseControllerRotationYaw = false;     // Disable yaw rotation
 	bUseControllerRotationRoll = false;   // Disable roll rotation
 
 	// Character Movement Settings
@@ -71,6 +73,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	HandgunChild = CreateDefaultSubobject<UChildActorComponent>(TEXT("HandgunChild"));
 	WeaponSystem = CreateDefaultSubobject<UWeaponSystem>(TEXT("WeaponSystem"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
 
 	// Component Hierarchy Setup
 	// Set up parent-child relationships for components
@@ -180,28 +183,51 @@ void ATPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	}
 }
 
+void ATPSTemplateCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+	InteractorComponent->CharacterRef = this;
+
+	if (InteractorComponent)
+	{
+		InteractorComponent->DetectionDistance = 350.0f;
+		InteractorComponent->InteractionMethod = EInteractionMethod::Camera;
+		InteractorComponent->HasInteraction = false;
+		InteractorComponent->InteractorActive = true;
+	}
+}
+
 void ATPSTemplateCharacter::Die()
 {
 	if (Dead)
 		return;
 
+	FVector InteractionActorLocation = GetCapsuleComponent()->GetComponentLocation();
+
+	FTransform InteractionSpawnTransform;
+	InteractionSpawnTransform.SetLocation(FVector(InteractionActorLocation.X, InteractionActorLocation.Y, InteractionActorLocation.Z + 20.0f));
+	InteractionSpawnTransform.SetRotation(FQuat::Identity);
+	InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+
 	Dead = true;
-	// TODO: InteractionComponent->DestroyComponent
-	
-	AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
-	if (!PrimaryWeapon)
+	InteractorComponent->DestroyComponent();
+
+	if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+	{
+		GetWorld()->SpawnActor<AActor>(PrimaryWeapon->WeaponPickupClass, InteractionSpawnTransform);
+	}
+	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Die()::PrimaryWeapon Is Null"));
-		return;
 	}
-	// TODO: GetWorld()->SpawnActor(PrimaryWeapon->WeaponPickup)
-	AMasterWeapon* SecondaryWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
-	if (!SecondaryWeapon)
+	if (AMasterWeapon* SecondaryWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
+	{
+		GetWorld()->SpawnActor<AActor>(SecondaryWeapon->WeaponPickupClass, InteractionSpawnTransform);
+	}
+	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Die()::SecondaryWeapon Is Null"));
-		return;
 	}
-	// TODO: GetWorld()->SpawnActor(SecondaryWeapon->WeaponPickup)
 
 	// 1. 캡슐 콜리전을 비활성화하고 래그돌 활성화
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -284,10 +310,6 @@ void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
 	if (!CanSwitchWeapon() || IsPrimaryEquip)
 		return;
 
-	if (IsPistolEquip)
-	{
-		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
-	}
 	bCanSwitchWeapon = false;
 	IsPistolEquip = false;
 
@@ -324,7 +346,39 @@ void ATPSTemplateCharacter::SwitchToPrimaryWeapon()
 
 void ATPSTemplateCharacter::SwitchToHandgunWeapon()
 {
-	
+	if (!CanSwitchWeapon() || IsPistolEquip)
+		return;
+
+	bCanSwitchWeapon = false;
+	IsPrimaryEquip = false;
+
+	LocomotionBP->LeftHandIKOffset = WeaponSystem->PistolData->LeftHandIKOffset;
+
+	WeaponSystem->Rifle_State(WeaponSystem->RifleData->WeaponClass, EAnimationState::RifleShotgun, EWeaponState::Unequip, FName(""), FName("RifleHost_Socket"));
+	IsPistolEquip = true;
+
+	WeaponSystem->Pistol_State(WeaponSystem->PistolData->WeaponClass, EAnimationState::Pistol, EWeaponState::Equip, FName("Pistol_Socket"), FName(""));
+
+	// Play Montage with Delay
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("AnimInstance is NULL"));
+		return;
+	}
+
+	if (AnimInstance)
+	{
+		UAnimMontage* PistolEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2")));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("RifleEquipMontage %s"));
+		// Play Montage
+		AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
+
+		// Set Montage End Delegate
+		FOnMontageEnded CompleteDelegate;
+		CompleteDelegate.BindUObject(this, &ATPSTemplateCharacter::OnMontageEnded);
+		AnimInstance->Montage_SetEndDelegate(CompleteDelegate, PistolEquipMontage);
+	}
 }
 
 bool ATPSTemplateCharacter::CanSwitchWeapon()
@@ -345,6 +399,27 @@ void ATPSTemplateCharacter::OnMontageEnded(UAnimMontage* Montage, bool bInterrup
 void ATPSTemplateCharacter::ShootFire(const FInputActionValue& Value)
 {
 	bFiring = Value.Get<bool>();
+
+	if (IsPrimaryEquip || IsPistolEquip)
+	{
+		if (bFiring)
+		{
+			bUseControllerRotationYaw = true;
+		}
+		else
+		{
+			FTimerHandle TimerHandle;
+			GetWorld()->GetTimerManager().SetTimer(
+				TimerHandle,
+				[this]() {
+					bUseControllerRotationYaw = false;
+				},
+				1.0f,
+				false
+			);
+		}
+	}
+	
     HandleFiring();
 }
 
@@ -356,10 +431,12 @@ void ATPSTemplateCharacter::Aim(const FInputActionValue& Value)
 
 	if (IsAim)
 	{
+		bUseControllerRotationYaw = true;
 		AimTimeline.Play();
 	}
 	else
 	{
+		bUseControllerRotationYaw = false; 
 		AimTimeline.Reverse();
 	}
 }
@@ -416,6 +493,7 @@ bool ATPSTemplateCharacter::CanFire()
 void ATPSTemplateCharacter::StopFire()
 {
     bFiring = false;
+	bUseControllerRotationYaw = false;
 }
 
 void ATPSTemplateCharacter::HandleFiring()
@@ -598,6 +676,11 @@ void ATPSTemplateCharacter::Dodge()
 
 		PlayDodgeMontage(MontageToPlay);
 	}
+}
+
+void ATPSTemplateCharacter::Interact()
+{
+	
 }
 
 void ATPSTemplateCharacter::FlipFlapCameraChange()

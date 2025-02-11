@@ -27,5 +27,7 @@ private:
 	
 	void FireFX();
 
+	void FireBlankTracer();
+
 	void RandPointInCircle(float Radius, float& PointX, float& PointY);
 };

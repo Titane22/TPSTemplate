@@ -51,12 +51,11 @@ AMasterWeapon::AMasterWeapon()
 // Called when the game starts or when spawned
 void AMasterWeapon::BeginPlay()
 {
-	Super::BeginPlay();
-	
     ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(GetAttachParentActor());
     if (!Player)
         return;
     WeaponSystem->CharacterRef = Player;
+    Super::BeginPlay();
 }
 
 bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
@@ -70,14 +69,14 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         return false;
     }
     // Hit된 액터에서 ActorComponent를 찾음
-    UActorComponent* HitReceiverComponent = nullptr; // TODO: Hit Receiver Component
+    UActorComponent* HitReceiverComponent = nullptr;
     if (!HitReceiverComponent)
     {
-        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
+        //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
         ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(HitActor);
         if (!Player)
         {
-            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("!Player")));
+            //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("!Player")));
             // Apply Damage Inner
             UGameplayStatics::ApplyDamage(
                 HitActor,                    // Damaged Actor
@@ -100,10 +99,23 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Player->Dead: %d"), Player->Dead));
         if (!Player->Dead)
         {
-            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
+            //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
             // Apply Damage
             Player->GetHealthComponent()->ApplyDamage(WeaponData->Damage);
-            // TODO: Play Sound 2D
+            // Play Sound 2D
+            if (USoundBase* HitMarkerSound = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/hitmarker_sfx_Cue"))))
+            {
+                UGameplayStatics::PlaySound2D(
+                    this,           // WorldContextObject
+                    HitMarkerSound, // Sound
+                    1.0f,          // Volume Multiplier
+                    1.0f,          // Pitch Multiplier
+                    0.0f,          // Start Time
+                    nullptr,       // Concurrency Settings
+                    nullptr,       // Owning Actor
+                    true          // Is UI Sound
+                );
+            }
             ValidHit = true;
             return ValidHit;
         }
@@ -111,10 +123,25 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         ValidHit = false;
         return ValidHit;
     }
-    // TODO: Play Sound 2D
-
-    ValidHit = true;
-    return false;
+    else
+    {
+        // Play Sound 2D
+        if (USoundBase* HitMarkerSound = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/hitmarker_sfx_Cue"))))
+        {
+            UGameplayStatics::PlaySound2D(
+                this,           // WorldContextObject
+                HitMarkerSound, // Sound
+                1.0f,          // Volume Multiplier
+                1.0f,          // Pitch Multiplier
+                0.0f,          // Start Time
+                nullptr,       // Concurrency Settings
+                nullptr,       // Owning Actor
+                true          // Is UI Sound
+            );
+        }
+        ValidHit = true;
+        return false;
+    }
 }
 
 void AMasterWeapon::Fire()

@@ -33,7 +33,6 @@ UDA_Rifle::UDA_Rifle()
     if (BodyFireMontageAsset.Succeeded())
     {
         BodyFireMontage = BodyFireMontageAsset.Object;
-        UE_LOG(LogTemp, Warning, TEXT("Successed to load BodyFireMontage"));
     }
     else
     {

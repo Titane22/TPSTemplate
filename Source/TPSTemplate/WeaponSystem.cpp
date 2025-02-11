@@ -257,6 +257,15 @@ void UWeaponSystem::FireFX(USoundBase* Sound, FVector Location, USoundAttenuatio
 	);
 }
 
+void UWeaponSystem::EmptyFX(USoundBase* Sound)
+{
+	UGameplayStatics::PlaySoundAtLocation(
+		this,
+		Sound,
+		CharacterRef->GetActorLocation()
+	);
+}
+
 void UWeaponSystem::MuzzleVFX(UNiagaraSystem* SystemTemplate, USceneComponent* AttachToComponent)
 {
 	if (!SystemTemplate || !AttachToComponent)

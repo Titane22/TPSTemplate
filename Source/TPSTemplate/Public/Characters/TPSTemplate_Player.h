@@ -15,6 +15,8 @@ class TPSTEMPLATE_API ATPSTemplate_Player : public ATPSTemplateCharacter
 	GENERATED_BODY()
 	
 protected:
+	ATPSTemplate_Player();
+
 	virtual void BeginPlay();
 
 	UFUNCTION()
@@ -28,6 +30,10 @@ protected:
 
 	virtual void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
 
+	virtual void Interact() override;
+
 	UFUNCTION()
 	void ClearWeaponUI();
+
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 };

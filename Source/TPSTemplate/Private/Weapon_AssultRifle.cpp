@@ -3,6 +3,7 @@
 
 #include "Weapon_AssultRifle.h"
 #include "./Weapon/DA_Rifle.h"
+#include "./Weapon/IWeaponPickup.h"
 #include "./Weapon/WeaponFireCameraShake.h"
 #include "../WeaponSystem.h"
 #include "Blueprint/UserWidget.h"
@@ -10,6 +11,8 @@
 #include "../TPSTemplateCharacter.h"
 #include "../ShooterPlayerController.h"
 #include "./Widget/W_DynamicWeaponHUD.h"
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AWeapon_AssultRifle::AWeapon_AssultRifle()
 {
@@ -21,6 +24,12 @@ AWeapon_AssultRifle::AWeapon_AssultRifle()
     }
 
     Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
+
+    /*static ConstructorHelpers::FClassFinder<AIWeaponPickup> WeaponPickupBP(TEXT("/Game/ThirdPerson/Weapons/BP_IWeaponPickup"));
+    if (WeaponPickupBP.Succeeded())
+    {
+        WeaponPickupClass = WeaponPickupBP.Class;
+    }*/
 }
 
 
@@ -60,6 +69,20 @@ void AWeapon_AssultRifle::BeginPlay()
     else
         UE_LOG(LogTemp, Warning, TEXT("Muzzle || WeaponMesh is Null"));
 
+    // LoadClass를 사용하여 런타임에 클래스 로드
+    UClass* LoadedClass = LoadClass<AIWeaponPickup>(
+        nullptr,
+        TEXT("/Game/ThirdPerson/Weapons/BP_IWeaponPickup.BP_IWeaponPickup_C")
+    );
+
+    if (LoadedClass)
+    {
+        WeaponPickupClass = LoadedClass;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to load WeaponPickup class"));
+    }
 }
 
 void AWeapon_AssultRifle::Reload()
@@ -197,7 +220,7 @@ void AWeapon_AssultRifle::Fire()
             {
                 FireFX();
 
-                //TODO: FireBlankTracer
+                FireBlankTracer();
             }
         }
     }
@@ -210,7 +233,12 @@ void AWeapon_AssultRifle::Fire()
                 Reload();
             else
             {
-                // TODO: Empty FX
+                if (USoundBase* EmptySound = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/Weapons/Rifle/Rifle/Weapons_Rifle_DryFire_01"))))
+                {
+                    WeaponSystem->EmptyFX(EmptySound);
+                }
+                else
+                    GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("AWeapon_AssultRifle::Fire()::EmptySound"));
                 return;
             }
         }
@@ -247,6 +275,29 @@ void AWeapon_AssultRifle::FireFX()
     WeaponSystem->FireMontage(nullptr, WeaponData->BodyFireMontage);
 
     WeaponMesh->PlayAnimation(WeaponData->WeaponFireMontage, false);
+}
+
+void AWeapon_AssultRifle::FireBlankTracer()
+{
+    if (APlayerController* PC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+    {
+        FVector SocketLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+        PC->ClientStartCameraShake(UWeaponFireCameraShake::StaticClass(), 1.0f);
+
+        // Get camera location and forward vector
+        APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
+        if (!CameraManager)
+            return;
+        if (UClass* BulletTraceClass = LoadClass<AActor>(nullptr, TEXT("/Game/Weapons/BulletTrace/Bullet_Trace.Bullet_Trace_C")))
+        {
+            FVector TraceEndLocation = CameraManager->GetRootComponent()->GetComponentLocation() + CameraManager->GetActorForwardVector() * 20000.0f;
+            FVector DirectionVector = TraceEndLocation - SocketLocation;
+            FRotator Rotation = UKismetMathLibrary::MakeRotFromX(DirectionVector);
+
+            FTransform NewTransform(Rotation, SocketLocation, FVector(1.0f));
+            GetWorld()->SpawnActor<AActor>(BulletTraceClass, NewTransform);
+        }
+    }
 }
 
 void AWeapon_AssultRifle::RandPointInCircle(float Radius, float& PointX, float& PointY)
@@ -341,7 +392,24 @@ void AWeapon_AssultRifle::FireBullet(FHitResult Hit, bool bReturnHit)
             }
             if (bKilledPlayer)
             {
-                // TODO: PlaySound2D
+                // PlaySound2D
+                if (USoundBase* SoundBase = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/kill-sound-effect_Cue"))))
+                {
+                    UGameplayStatics::PlaySound2D(
+                        this,
+                        SoundBase,
+                        1.0f,
+                        1.0f,
+                        0.0f,
+                        nullptr,
+                        nullptr,
+                        true
+                    );
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("AAWeapon_Handgun::FireBullet::bKilledPlayer::SoundBase Is NULL"));
+                }
             }
 
             // Spawn bullet trace effect

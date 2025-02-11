@@ -9,17 +9,19 @@
 #include "UObject/ConstructorHelpers.h"
 #include "../TPSTemplateCharacter.h"
 #include "./Widget/W_DynamicWeaponHUD.h"
+#include "Weapon/IWeaponPickup.h"  
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
 
 AAWeapon_Handgun::AAWeapon_Handgun()
 {
-    // ½ºÄÌ·¹Å» ¸Þ½Ã ¿¡¼Â ·Îµå
     static ConstructorHelpers::FObjectFinder<USkeletalMesh> HandgunMesh(TEXT("/Game/Weapons/Pistol/Mesh/SK_Handgun"));
-    if (HandgunMesh.Succeeded() && WeaponMesh)  // WeaponMesh´Â ºÎ¸ð Å¬·¡½ºÀÇ º¯¼ö
+    if (HandgunMesh.Succeeded() && WeaponMesh) 
     {
         WeaponMesh->SetSkeletalMesh(HandgunMesh.Object);
     }
 
-    // ¹«±â Å¸ÀÔ ¼³Á¤
+    // ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     WeaponType = EAnimationState::Pistol;
     WeaponData = NewObject<UDA_Pistol>();
     bReloading = false;
@@ -56,7 +58,7 @@ void AAWeapon_Handgun::BeginPlay()
 {
     Super::BeginPlay();
 
-    // ¹«±â Å¸ÀÔ ¼³Á¤
+    // ï¿½ï¿½ï¿½ï¿½ Å¸ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
     WeaponType = EAnimationState::Pistol;
     WeaponData = NewObject<UDA_Pistol>();
     bReloading = false;
@@ -87,6 +89,20 @@ void AAWeapon_Handgun::BeginPlay()
     }
     else
         UE_LOG(LogTemp, Warning, TEXT("Muzzle || WeaponMesh is Null"));
+
+    UClass* LoadedClass = LoadClass<AIWeaponPickup>(
+        nullptr,
+        TEXT("/Game/ThirdPerson/Weapons/BP_IWeaponPickup_Pistol.BP_IWeaponPickup_Pistol_C")
+    );
+
+    if (LoadedClass)
+    {
+        WeaponPickupClass = LoadedClass;
+    }
+    else
+    {
+        UE_LOG(LogTemp, Warning, TEXT("Failed to load WeaponPickup class"));
+    }
 }
 
 void AAWeapon_Handgun::Fire()
@@ -106,7 +122,7 @@ void AAWeapon_Handgun::Fire()
             if (!CameraManager)
                 return;
 
-            FVector StartLocation = CameraManager->GetCameraLocation();
+            FVector StartLocation = CameraManager->GetRootComponent()->GetComponentLocation();
             FVector ForwardVector = CameraManager->GetActorForwardVector();
             if (!WeaponData)
             {
@@ -125,14 +141,14 @@ void AAWeapon_Handgun::Fire()
 
             // Draw debug line
             //DrawDebugLine(
-            //    GetWorld(),           // ¿ùµå
-            //    StartLocation,        // ½ÃÀÛÁ¡
-            //    EndLocation,          // ³¡Á¡
-            //    FColor::Yellow,       // ¶óÀÎ »ö»ó
-            //    false,               // Áö¼ÓÀûÀ¸·Î ±×¸±Áö ¿©ºÎ
-            //    5.0f,                // Áö¼Ó ½Ã°£ (ÃÊ)
-            //    0,                   // ¿ì¼±¼øÀ§
-            //    1.0f                 // µÎ²²
+            //    GetWorld(),           // ï¿½ï¿½ï¿½ï¿½
+            //    StartLocation,        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+            //    EndLocation,          // ï¿½ï¿½ï¿½ï¿½
+            //    FColor::Yellow,       // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+            //    false,               // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½×¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+            //    5.0f,                // ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ (ï¿½ï¿½)
+            //    0,                   // ï¿½ì¼±ï¿½ï¿½ï¿½ï¿½
+            //    1.0f                 // ï¿½Î²ï¿½
             //);
 
 
@@ -152,14 +168,14 @@ void AAWeapon_Handgun::Fire()
                 FHitResult CameraHitResult;
 
                 //DrawDebugLine(
-                //    GetWorld(),           // ¿ùµå
-                //    MuzzleLocation,        // ½ÃÀÛÁ¡
-                //    EndMuzzleLocation * -500,          // ³¡Á¡
-                //    FColor::Yellow,       // ¶óÀÎ »ö»ó
-                //    false,               // Áö¼ÓÀûÀ¸·Î ±×¸±Áö ¿©ºÎ
-                //    5.0f,                // Áö¼Ó ½Ã°£ (ÃÊ)
-                //    0,                   // ¿ì¼±¼øÀ§
-                //    1.0f                 // µÎ²²
+                //    GetWorld(),           // ï¿½ï¿½ï¿½ï¿½
+                //    MuzzleLocation,        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+                //    EndMuzzleLocation * -500,          // ï¿½ï¿½ï¿½ï¿½
+                //    FColor::Yellow,       // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+                //    false,               // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½×¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+                //    5.0f,                // ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ (ï¿½ï¿½)
+                //    0,                   // ï¿½ì¼±ï¿½ï¿½ï¿½ï¿½
+                //    1.0f                 // ï¿½Î²ï¿½
                 //);
 
                 bool bHit = GetWorld()->LineTraceSingleByChannel(
@@ -178,7 +194,7 @@ void AAWeapon_Handgun::Fire()
             {
                 FireFX();
 
-                //TODO: FireBlankTracer
+                FireBlankTracer();
             }
         }
     }
@@ -190,7 +206,13 @@ void AAWeapon_Handgun::Fire()
                 Reload();
             else
             {
-                // TODO: Empty FX
+                // Empty FX
+                if (USoundBase* EmptySound = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/Pistol/Weapons_Pistol_DryFire_01"))))
+                {
+                    WeaponSystem->EmptyFX(EmptySound);
+                }
+                else
+                    GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Blue, TEXT("AWeapon_AssultRifle::Fire()::EmptySound"));
                 return;
             }
         }
@@ -212,8 +234,8 @@ void AAWeapon_Handgun::FireBullet(FHitResult Hit, bool bReturnHit)
         }
         FVector SpreadAdjustedHitLocation = Hit.Location + CameraManager->GetActorRightVector() * PointX + CameraManager->GetActorUpVector() * PointY;
         FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-        // BulletDirectionÀº ÃÑ±¸¿¡¼­ ¸ñÇ¥ ÁöÁ¡±îÁöÀÇ ¹æÇâÀ» ³ªÅ¸³À´Ï´Ù.
-        // ÃÑ±¸ À§Ä¡¿¡¼­ Á¶ÁØÁ¡ À§Ä¡¸¦ »©¼­ ÅºµµÀÇ ¹æÇâ º¤ÅÍ¸¦ °è»êÇÕ´Ï´Ù.
+        // BulletDirectionï¿½ï¿½ ï¿½Ñ±ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ç¥ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Å¸ï¿½ï¿½ï¿½Ï´ï¿½.
+        // ï¿½Ñ±ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½Ä¡ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ Åºï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½Í¸ï¿½ ï¿½ï¿½ï¿½ï¿½Õ´Ï´ï¿½.
         FVector BulletDirection = MuzzleLocation - SpreadAdjustedHitLocation;
 
         // Setup trace parameters
@@ -229,14 +251,14 @@ void AAWeapon_Handgun::FireBullet(FHitResult Hit, bool bReturnHit)
         //QueryParams.AddIgnoredActor(Cast<AActor>(WeaponSystem->CharacterRef));
 
         //DrawDebugLine(
-        //    GetWorld(),           // ¿ùµå
-        //    MuzzleLocation,        // ½ÃÀÛÁ¡
-        //    MuzzleLocation + (BulletDirection * -5.0f),          // ³¡Á¡
-        //    FColor::Yellow,       // ¶óÀÎ »ö»ó
-        //    false,               // Áö¼ÓÀûÀ¸·Î ±×¸±Áö ¿©ºÎ
-        //    5.0f,                // Áö¼Ó ½Ã°£ (ÃÊ)
-        //    0,                   // ¿ì¼±¼øÀ§
-        //    1.0f                 // µÎ²²
+        //    GetWorld(),           // ï¿½ï¿½ï¿½ï¿½
+        //    MuzzleLocation,        // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+        //    MuzzleLocation + (BulletDirection * -5.0f),          // ï¿½ï¿½ï¿½ï¿½
+        //    FColor::Yellow,       // ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        //    false,               // ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½×¸ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
+        //    5.0f,                // ï¿½ï¿½ï¿½ï¿½ ï¿½Ã°ï¿½ (ï¿½ï¿½)
+        //    0,                   // ï¿½ì¼±ï¿½ï¿½ï¿½ï¿½
+        //    1.0f                 // ï¿½Î²ï¿½
         //);
         // Perform line trace
         FHitResult HitResult;
@@ -279,7 +301,24 @@ void AAWeapon_Handgun::FireBullet(FHitResult Hit, bool bReturnHit)
             }
             if (bKilledPlayer)
             {
-                // TODO: PlaySound2D
+                // PlaySound2D
+                if (USoundBase* SoundBase = Cast<USoundBase>(StaticLoadObject(USoundBase::StaticClass(), nullptr, TEXT("/Game/ThirdPerson/Audio/Sounds/Weapons/kill-sound-effect_Cue"))))
+                {
+                    UGameplayStatics::PlaySound2D(
+                        this,
+                        SoundBase,
+                        1.0f,
+                        1.0f,
+                        0.0f,
+                        nullptr,
+                        nullptr,
+                        true
+                    );
+                }
+                else
+                {
+                    UE_LOG(LogTemp, Warning, TEXT("AAWeapon_Handgun::FireBullet::bKilledPlayer::SoundBase Is NULL"));
+                }
             }
 
             // Spawn bullet trace effect
@@ -337,6 +376,29 @@ void AAWeapon_Handgun::FireFX()
     WeaponSystem->FireMontage(WeaponData->BodyFireMontage, nullptr);
 
     WeaponMesh->PlayAnimation(WeaponData->WeaponFireMontage, false);
+}
+
+void AAWeapon_Handgun::FireBlankTracer()
+{
+    if (APlayerController* PC = Cast<APlayerController>(GetWorld()->GetFirstPlayerController()))
+    {
+        FVector SocketLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+        PC->ClientStartCameraShake(UWeaponFireCameraShake::StaticClass(), 1.0f);
+
+        // Get camera location and forward vector
+        APlayerCameraManager* CameraManager = PC->PlayerCameraManager;
+        if (!CameraManager)
+            return;
+        if (UClass* BulletTraceClass = LoadClass<AActor>(nullptr, TEXT("/Game/Weapons/BulletTrace/Bullet_Trace.Bullet_Trace_C")))
+        {
+            FVector TraceEndLocation = CameraManager->GetRootComponent()->GetComponentLocation() + CameraManager->GetActorForwardVector() * 20000.0f;
+            FVector DirectionVector = TraceEndLocation - SocketLocation;
+            FRotator Rotation = UKismetMathLibrary::MakeRotFromX(DirectionVector);
+
+            FTransform NewTransform(Rotation, SocketLocation, FVector(1.0f));
+            GetWorld()->SpawnActor<AActor>(BulletTraceClass, NewTransform);
+        }
+    }
 }
 
 void AAWeapon_Handgun::Reload()

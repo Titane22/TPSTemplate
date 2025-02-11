@@ -96,6 +96,8 @@ public:
 
 	void FireFX(USoundBase* Sound, FVector Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings);
 
+	void EmptyFX(USoundBase* Sound);
+
 	void MuzzleVFX(UNiagaraSystem* SystemTemplate, USceneComponent* AttachToComponent);
 
 	void FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);

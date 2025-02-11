@@ -10,6 +10,7 @@
 class UWeaponDataAsset;
 class ATPSTemplateCharacter; 
 class ATPSTemplate_Player;
+class AIWeaponPickup;
 
 UCLASS()
 class TPSTEMPLATE_API AMasterWeapon : public AActor
@@ -37,9 +38,9 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	class UWeaponSystem* WeaponSystem;
 
-	// 무기 속성들
-
-	// TODO: Interaction Weapon Pickup
+	// Interaction Weapon Pickup
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	TSubclassOf<AIWeaponPickup> WeaponPickupClass;  
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	EAnimationState WeaponType;
