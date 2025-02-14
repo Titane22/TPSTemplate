@@ -20,6 +20,7 @@
 #include "../Public/Weapon/DA_Rifle.h"
 #include "../Public/Weapon/DA_Pistol.h"
 #include "../Public/Widget/W_DynamicWeaponHUD.h"
+#include "../Public/Widget/W_DivisionHUD.h"
 #include "Library/InteractiveType.h"
 #include "Weapon/Interactor.h"
 #include "Weapon/IWeaponPickup.h"
@@ -108,6 +109,18 @@ void ATPSTemplate_Player::BeginPlay()
 		else
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to create UICrosshair widget"));
+		}
+
+		CurrentHUD = CreateWidget<UW_DivisionHUD>(PlayerController,
+			LoadClass<UW_DivisionHUD>(nullptr, TEXT("/Game/ThirdPerson/Blueprints/W_DivisionHUD.W_DivisionHUD_C")));
+		if (CurrentHUD)
+		{
+			Cast<UUserWidget>(CurrentHUD)->AddToViewport();
+			UE_LOG(LogTemp, Warning, TEXT("Successfully created and added CurrentHUD to viewport"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to create CurrentHUD widget"));
 		}
 	}
 

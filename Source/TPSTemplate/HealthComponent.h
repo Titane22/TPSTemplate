@@ -30,10 +30,21 @@ protected:
 public:	
 	ATPSTemplateCharacter* CharacterRef;
 
-	UFUNCTION()
+	UFUNCTION(BlueprintCallable, Category = "Health")
 	bool ApplyDamage(float Damage);
 
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	bool Heal(float HealAmount);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
 	float GetCurrentHealth();
 
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetCurrentHealth(float Value);
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
 	float GetMaxHealth();
+
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	void SetMaxHealth(float Value);
 };

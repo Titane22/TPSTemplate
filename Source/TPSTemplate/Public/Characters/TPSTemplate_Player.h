@@ -14,6 +14,9 @@ class TPSTEMPLATE_API ATPSTemplate_Player : public ATPSTemplateCharacter
 {
 	GENERATED_BODY()
 	
+private:
+	class UW_DivisionHUD* CurrentHUD;
+
 protected:
 	ATPSTemplate_Player();
 

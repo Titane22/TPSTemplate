@@ -398,27 +398,9 @@ void ATPSTemplateCharacter::OnMontageEnded(UAnimMontage* Montage, bool bInterrup
 
 void ATPSTemplateCharacter::ShootFire(const FInputActionValue& Value)
 {
+	if (!IsAim)
+		return;
 	bFiring = Value.Get<bool>();
-
-	if (IsPrimaryEquip || IsPistolEquip)
-	{
-		if (bFiring)
-		{
-			bUseControllerRotationYaw = true;
-		}
-		else
-		{
-			FTimerHandle TimerHandle;
-			GetWorld()->GetTimerManager().SetTimer(
-				TimerHandle,
-				[this]() {
-					bUseControllerRotationYaw = false;
-				},
-				1.0f,
-				false
-			);
-		}
-	}
 	
     HandleFiring();
 }

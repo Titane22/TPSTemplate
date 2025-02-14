@@ -24,12 +24,6 @@ AWeapon_AssultRifle::AWeapon_AssultRifle()
     }
 
     Muzzle = CreateDefaultSubobject<USceneComponent>(TEXT("Muzzle"));
-
-    /*static ConstructorHelpers::FClassFinder<AIWeaponPickup> WeaponPickupBP(TEXT("/Game/ThirdPerson/Weapons/BP_IWeaponPickup"));
-    if (WeaponPickupBP.Succeeded())
-    {
-        WeaponPickupClass = WeaponPickupBP.Class;
-    }*/
 }
 
 

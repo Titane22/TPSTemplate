@@ -36,7 +36,7 @@ void UHealthComponent::BeginPlay()
 bool UHealthComponent::ApplyDamage(float Damage)
 {
 	Health = Health - Damage;
-	GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Hit!!!!"));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Hit!!!!"));
 	if (Health <= 0)
 	{
 		CharacterRef->StartRagdoll();
@@ -51,13 +51,29 @@ bool UHealthComponent::ApplyDamage(float Damage)
 	}
 }
 
+bool UHealthComponent::Heal(float HealAmount)
+{
+	Health = Health + HealAmount;
+	return true;
+}
+
 float UHealthComponent::GetCurrentHealth()
 {
 	return Health;
 }
 
+void UHealthComponent::SetCurrentHealth(float Value)
+{
+	Health = Value;
+}
+
 float UHealthComponent::GetMaxHealth()
 {
 	return MaxHealth;
+}
+
+void UHealthComponent::SetMaxHealth(float Value)
+{
+	MaxHealth = Value;
 }
 
