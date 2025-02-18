@@ -22,6 +22,7 @@ class UWeaponSystem;
 class ULocomotionAnimInstance;
 class UWeaponDataAsset;
 class UW_DynamicWeaponHUD;
+class UMantleSystem;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
@@ -108,6 +109,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	class UInteractor* InteractorComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UMantleSystem* MantleComponent;
 
 	UPROPERTY()
 	FTimeline CrouchTimeline;

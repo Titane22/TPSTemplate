@@ -319,8 +319,9 @@ void AWeapon_AssultRifle::FireBullet(FHitResult Hit, bool bReturnHit)
         }
         FVector SpreadAdjustedHitLocation = Hit.Location + CameraManager->GetActorRightVector() * PointX + CameraManager->GetActorUpVector() * PointY;
         FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
-        // BulletDirection은 총구에서 목표 지점까지의 방향을 나타냅니다.
-        // 총구 위치에서 조준점 위치를 빼서 탄도의 방향 벡터를 계산합니다.
+        // BulletDirection represents the direction from the muzzle to the target.
+        // Calculate the direction vector of the trajectory 
+        // by subtracting the aim point position from the muzzle position.
         FVector BulletDirection = MuzzleLocation - SpreadAdjustedHitLocation;
         
         // Setup trace parameters

@@ -15,6 +15,7 @@
 #include "EnhancedInputSubsystems.h"
 #include "InputActionValue.h"
 #include "Animation/LocomotionAnimInstance.h"
+#include "Animation/MantleSystem.h"
 #include "WeaponDataAsset.h"
 #include "./Public/Weapon_AssultRifle.h"
 #include "./Public/AWeapon_Handgun.h"
@@ -74,6 +75,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	WeaponSystem = CreateDefaultSubobject<UWeaponSystem>(TEXT("WeaponSystem"));
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
+	MantleComponent = CreateDefaultSubobject<UMantleSystem>(TEXT("Mantle Component"));
 
 	// Component Hierarchy Setup
 	// Set up parent-child relationships for components
@@ -229,16 +231,16 @@ void ATPSTemplateCharacter::Die()
 		UE_LOG(LogTemp, Warning, TEXT("Die()::SecondaryWeapon Is Null"));
 	}
 
-	// 1. 캡슐 콜리전을 비활성화하고 래그돌 활성화
+	// 1. Disable capsule collision and enable ragdoll physics
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetSimulatePhysics(true);
 
-	// 2. 캐릭터 무브먼트 비활성화
+	// 2. Disable character movement
 	GetCharacterMovement()->DisableMovement();
 	GetCharacterMovement()->StopMovementImmediately();
 
-	// 3. 컨트롤러 분리
+	// 3. Detach controller from character
 	if (AController* CharacterController = GetController())
 	{
 		CharacterController->UnPossess();
