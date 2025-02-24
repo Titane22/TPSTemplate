@@ -99,6 +99,8 @@ struct FMantleAsset
 	float HighStartPosition = 0.0f;
 };
 
+class ATimelineMantle;
+
 USTRUCT(BlueprintType)
 struct FMantleComponentAndTransform
 {
@@ -150,6 +152,21 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Mantle|Events")
 	FOnMantleEndDelegate OnMantleEnd;
+
+	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
+	void MantleUpdate(float BlendIn);
+
+	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
+	void MantleEnd();
+
+	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
+	bool MantleCheck(FMantleTraceSettings ParamTraceSettings);
+
+	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
+	bool MantleGroundCheck();
+
+	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
+	bool MantleFallingCheck();
 
 protected:
 	// Called when the game starts
@@ -259,7 +276,7 @@ protected:
 	FMantleAsset UE5_Quinn_Mantle_1m_LH;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle|Timeline", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<AActor> TimelineMantleClass;
+	TSubclassOf<ATimelineMantle> TimelineMantleClass;
 public:	
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -271,23 +288,10 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FMantleAsset GetMantleAsset(EMantleType MantleType);
 
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	void MantleUpdate(float BlendIn);
-
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	void MantleEnd();
 
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void MantleStart(float MantleHeight, FMantleComponentAndTransform MantleLedgeWS, EMantleType MantleType);
 
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	bool MantleCheck(FMantleTraceSettings ParamTraceSettings);
-
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	bool MantleGroundCheck();
-
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	bool MantleFallingCheck();
 
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void SetHandType(EMantleHandType ParamHandType);

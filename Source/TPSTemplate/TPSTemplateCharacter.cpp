@@ -156,7 +156,7 @@ void ATPSTemplateCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInp
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
 		
 		// Jumping
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ATPSTemplateCharacter::Jumping);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
@@ -659,6 +659,41 @@ void ATPSTemplateCharacter::Dodge()
 		}
 
 		PlayDodgeMontage(MontageToPlay);
+	}
+}
+
+void ATPSTemplateCharacter::Jumping()
+{
+	if (bInteracting || !CanJump())
+		return;
+	FTimerHandle TimerHandle;
+	if (MantleComponent->MantleGroundCheck())
+	{
+		bUseControllerRotationYaw = false;
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			[this]()
+			{
+				bUseControllerRotationYaw = true;
+			},
+			2.0f,
+			false
+		);
+	}
+	else
+	{
+		bInteracting = true;
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Red, TEXT("Called"));
+		Jump();
+		GetWorld()->GetTimerManager().SetTimer(
+			TimerHandle,
+			[this]()
+			{
+				bInteracting = false;
+			},
+			1.0f,
+			false
+		);
 	}
 }
 

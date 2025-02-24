@@ -8,6 +8,8 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Animation/AnimInstance.h"
+#include "Animation/TimelineMantle.h"
+#include "DrawDebugHelpers.h"
 
 // Sets default values for this component's properties
 UMantleSystem::UMantleSystem()
@@ -41,17 +43,21 @@ void UMantleSystem::BeginPlay()
 
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = CharacterRef;
-		if (AActor* TimelineActor = GetWorld()->SpawnActor<AActor>(TimelineMantleClass, SpawnTransform, SpawnParams))
+		if (ATimelineMantle* TimelineActor = GetWorld()->SpawnActor<ATimelineMantle>(TimelineMantleClass, SpawnTransform, SpawnParams))
 		{
-			if (UTimelineComponent* Timeline = TimelineActor->FindComponentByClass<UTimelineComponent>())
+			MantleTimeline = TimelineActor->TimelineRef;
+			if (MantleTimeline)
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Timeline Found"));
-				MantleTimeline = Timeline;  
+				UE_LOG(LogTemp, Warning, TEXT("Timeline Found"));
 			}
 			else
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("Timeline Not Found"));
+				UE_LOG(LogTemp, Warning, TEXT("Timeline Not Found"));
 			}
+		}
+		else
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("TimelineActor Not Found"));
 		}
 	}
 }
@@ -71,7 +77,7 @@ void UMantleSystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	{
 		if (CharacterMovement->GetCurrentAcceleration().Size() / CharacterMovement->GetMaxAcceleration() > 0.0f)
 		{
-			// TODO: MantleFallingCheck();
+			MantleFallingCheck();
 		}
 	}
 }
@@ -185,21 +191,30 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 	float ZCorrectionAlpha;
 	FTransform lerpedTarget;
 
-	// Step 1: Continually update the mantle target from the stored local transform to follow along with moving objects.
+	// Step 1: Continually update the mantle target from the stored local transform
 	{
-		FTransform worldTransform = MantleLedgeLS.Component->GetComponentToWorld();
-		FVector worldLocation = worldTransform.GetLocation();
-		FRotator worldRotation = worldTransform.Rotator();
-		FVector worldScale = worldTransform.GetScale3D();
-
-		FVector inverseLocation = worldTransform.InverseTransformPosition(worldLocation);
-		FRotator inverseRotation = worldTransform.InverseTransformRotation(worldRotation.Quaternion()).Rotator();
-		FVector inverseScale = worldTransform.InverseTransformVector(worldScale);
-		MantleTarget = FTransform(
-			inverseRotation,
-			inverseLocation,
-			inverseScale
-		);
+		// 월드 트랜스폼 가져오기
+		FTransform worldTransform = MantleLedgeLS.Component->GetComponentTransform();
+		
+		// 저장된 로컬 트랜스폼 사용
+		FTransform targetTransform = MantleLedgeLS.Transform;  // 컴포넌트의 트랜스폼이 아닌 저장된 트랜스폼 사용
+		
+		// Break Transform
+		FVector worldLocation = targetTransform.GetLocation();
+		FRotator worldRotation = targetTransform.Rotator();
+		FVector worldScale = targetTransform.GetScale3D();
+		
+		// Get World Transform & Invert Transform
+		FTransform invTransform = worldTransform.Inverse();
+		
+		// Inverse Transform Location/Rotation/Scale
+		FVector localLocation = invTransform.InverseTransformPosition(worldLocation);
+		FRotator localRotation = invTransform.InverseTransformRotation(worldRotation.Quaternion()).Rotator();
+		FVector localScale = invTransform.InverseTransformVector(worldScale);
+		
+		// Make final transform
+		MantleTarget = FTransform(localRotation, localLocation, localScale);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("invTransform: %s"), *localLocation.ToString()));
 	}
 	// Step 2: Update the Position and Correction Alphas using the Position/Correction curve set for each Mantle.
 	{
@@ -207,6 +222,9 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 		positionAlpha = curveVector.X;
 		XYCorrectionAlpha = curveVector.Y;
 		ZCorrectionAlpha = curveVector.Z;
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("curveVector: %lf"), MantleTimeline->GetPlaybackPosition() + MantleParams.StartingPosition));
+		
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("positionAlpha: %lf, XYCorrectionAlpha: %lf, ZCorrectionAlpha: %lf"), curveVector.X, curveVector.Y, curveVector.Z));
 	}
 	// Step 3: Lerp multiple transforms together for independent control over the horizontal and vertical blend
 	{
@@ -295,19 +313,19 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 
 		lerpedTarget = FTransform(
 			FRotator(
-				FMath::Lerp(blendedTransform.Rotator().Pitch, sumMantleTransform.Rotator().Pitch, BlendIn),
-				FMath::Lerp(blendedTransform.Rotator().Yaw, sumMantleTransform.Rotator().Yaw, BlendIn),
-				FMath::Lerp(blendedTransform.Rotator().Roll, sumMantleTransform.Rotator().Roll, BlendIn)
+				FMath::Lerp(sumMantleTransform.Rotator().Pitch, blendedTransform.Rotator().Pitch, BlendIn),
+				FMath::Lerp(sumMantleTransform.Rotator().Yaw, blendedTransform.Rotator().Yaw, BlendIn),
+				FMath::Lerp(sumMantleTransform.Rotator().Roll, blendedTransform.Rotator().Roll, BlendIn)
 			),
 			FVector(
-				FMath::Lerp(blendedTransform.GetLocation().X, sumMantleTransform.GetLocation().X, BlendIn),
-				FMath::Lerp(blendedTransform.GetLocation().Y, sumMantleTransform.GetLocation().Y, BlendIn),
-				FMath::Lerp(blendedTransform.GetLocation().Z, sumMantleTransform.GetLocation().Z, BlendIn)
+				FMath::Lerp(sumMantleTransform.GetLocation().X, blendedTransform.GetLocation().X, BlendIn),
+				FMath::Lerp(sumMantleTransform.GetLocation().Y, blendedTransform.GetLocation().Y, BlendIn),
+				FMath::Lerp(sumMantleTransform.GetLocation().Z, blendedTransform.GetLocation().Z, BlendIn)
 			),
 			FVector(
-				FMath::Lerp(blendedTransform.GetScale3D().X, sumMantleTransform.GetScale3D().X, BlendIn),
-				FMath::Lerp(blendedTransform.GetScale3D().Y, sumMantleTransform.GetScale3D().Y, BlendIn),
-				FMath::Lerp(blendedTransform.GetScale3D().Z, sumMantleTransform.GetScale3D().Z, BlendIn)
+				FMath::Lerp(sumMantleTransform.GetScale3D().X, blendedTransform.GetScale3D().X, BlendIn),
+				FMath::Lerp(sumMantleTransform.GetScale3D().Y, blendedTransform.GetScale3D().Y, BlendIn),
+				FMath::Lerp(sumMantleTransform.GetScale3D().Z, blendedTransform.GetScale3D().Z, BlendIn)
 			)
 		);
 	}
@@ -316,6 +334,8 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 		FVector newLocation = FVector(lerpedTarget.GetLocation().X, lerpedTarget.GetLocation().Y, lerpedTarget.GetLocation().Z + Mantle_Z_Offset);
 		FRotator newRotation = lerpedTarget.Rotator();
 		FHitResult HitResult;
+
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Local - Location: %s"), *newLocation.ToString()));
 		SetActorLocationAndRotation(newLocation, newRotation, false, false, HitResult);
 	}
 }
@@ -351,97 +371,109 @@ void UMantleSystem::MantleStart(float MantleHeight, FMantleComponentAndTransform
 			mantleAsset.PositionCorrectionCurve,
 			FMath::GetMappedRangeValueClamped(
 				FVector2D(mantleAsset.LowHeight, mantleAsset.HighHeight),      // InRange
-				FVector2D(mantleAsset.LowPlayRate, mantleAsset.HighPlayRate),  // OutRange
+				FVector2D(mantleAsset.LowStartPosition, mantleAsset.HighStartPosition),  // OutRange
 				MantleHeight                                                    // Value
 			),
 			FMath::GetMappedRangeValueClamped(
 				FVector2D(mantleAsset.LowHeight, mantleAsset.HighHeight),				// InRange
-				FVector2D(mantleAsset.LowStartPosition, mantleAsset.HighStartPosition),  // OutRange
+				FVector2D(mantleAsset.LowPlayRate, mantleAsset.HighPlayRate),  // OutRange
 				MantleHeight															// Value
 			),
 			mantleAsset.StartingOffset
 		);
-		// Step 2: Convert the world space target to the mantle component's local space for use in moving objects.
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("StartingPosition: %f"), MantleParams.StartingPosition));
+	}
+	// Step 2: Convert the world space target to the mantle component's local space for use in moving objects.
+	{
+		if (MantleLedgeWS.Component)
 		{
-			if (MantleLedgeWS.Component)
-			{
-				MantleLedgeLS.Component = MantleLedgeWS.Component;
-				FTransform componentWorldTransform = MantleLedgeWS.Component->GetComponentToWorld();
-				FTransform inverseTransform = componentWorldTransform.Inverse();
-				MantleLedgeLS.Transform = UKismetMathLibrary::ComposeTransforms(
-					MantleLedgeWS.Transform,
-					inverseTransform
-				);
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("MantleLedgeWS.Component is null, using world space transform"));
-				return;
-			}
+			MantleLedgeLS.Component = MantleLedgeWS.Component;
+			FTransform componentWorldTransform = MantleLedgeWS.Component->GetComponentTransform();
+			FTransform inverseTransform = componentWorldTransform.Inverse();
+			/*MantleLedgeLS.Transform = UKismetMathLibrary::ComposeTransforms(
+				MantleLedgeWS.Transform,
+				inverseTransform
+			);*/
+			MantleLedgeLS.Transform = MantleLedgeWS.Transform * inverseTransform;
+			//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Green, FString::Printf(TEXT("componentWorldTransform: %s"), *MantleLedgeLS.Transform.ToString()));
 		}
-		// Step 3: Set the Mantle Target and calculate the Starting Offset (offset amount between the actor and target transform).
+		else
 		{
-			MantleTarget = MantleLedgeLS.Transform;
-			FTransform sourceTransform = CharacterRef->GetActorTransform();
-			MantleActualStartOffset = FTransform(
-				FRotator(
-					sourceTransform.Rotator().Pitch - MantleTarget.Rotator().Pitch,
-					sourceTransform.Rotator().Yaw - MantleTarget.Rotator().Yaw,
-					sourceTransform.Rotator().Roll - MantleTarget.Rotator().Roll
-				),
-				sourceTransform.GetLocation() - MantleTarget.GetLocation(),
-				sourceTransform.GetScale3D() - MantleTarget.GetScale3D()
-			);
+			UE_LOG(LogTemp, Warning, TEXT("MantleLedgeWS.Component is null, using world space transform"));
+			return;
 		}
-		// Step 4: Calculate the Animated Start Offset from the Target Location. This would be the location the actual animation starts at relative to the Target Transform. 
-		{
-			FVector sourceNormal = MantleTarget.GetRotation().Vector();
-			FVector horizontalOffset = sourceNormal * MantleParams.StartingOffset.Y;
-			FVector sourceLocation = MantleTarget.GetLocation() - FVector(horizontalOffset.X, horizontalOffset.Y, MantleParams.StartingOffset.Z);
-			FRotator sourceRotation = MantleTarget.Rotator();
-			FVector sourceScale = FVector(1.0f, 1.0f, 1.0f);
+	}
+	// Step 3: Set the Mantle Target and calculate the Starting Offset (offset amount between the actor and target transform).
+	{
+		MantleTarget = MantleLedgeWS.Transform;
+		FTransform sourceTransform = CharacterRef->GetActorTransform();
+		MantleActualStartOffset = FTransform(
+			FRotator(
+				sourceTransform.Rotator().Pitch - MantleTarget.Rotator().Pitch,
+				sourceTransform.Rotator().Yaw - MantleTarget.Rotator().Yaw,
+				sourceTransform.Rotator().Roll - MantleTarget.Rotator().Roll
+			),
+			sourceTransform.GetLocation() - MantleTarget.GetLocation(),
+			sourceTransform.GetScale3D() - MantleTarget.GetScale3D()
+		);
+		FString DebugMessage = FString::Printf(TEXT("MantleActualStartOffset: %s"),
+			*MantleActualStartOffset.ToString());
 
-			FVector targetLocation = MantleTarget.GetLocation();
-			FRotator targetRotation = MantleTarget.Rotator();
-			FVector targetScale = MantleTarget.GetScale3D();
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow, DebugMessage);
+	}
+	// Step 4: Calculate the Animated Start Offset from the Target Location. This would be the location the actual animation starts at relative to the Target Transform. 
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("Mantle Target: %s"), *MantleTarget.ToString()));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("RotateVector: %s, GetRotation().Vector(): %s"), *UKismetMathLibrary::Quat_GetRotationAxis(MantleTarget.GetRotation()).ToString(), *MantleTarget.GetRotation().Vector().ToString()));
+		FVector sourceNormal = MantleTarget.GetRotation().Vector();
+		FVector horizontalOffset = sourceNormal * MantleParams.StartingOffset.Y;
+		FVector sourceLocation = MantleTarget.GetLocation() - FVector(horizontalOffset.X, horizontalOffset.Y, MantleParams.StartingOffset.Z);
+		FRotator sourceRotation = MantleTarget.Rotator();
+		FVector sourceScale = FVector(1.0f, 1.0f, 1.0f);
 
-			MantleAnimatedStartOffset = FTransform(
-				FRotator(sourceRotation.Pitch - targetRotation.Pitch,
-					sourceRotation.Yaw - targetRotation.Yaw,
-					sourceRotation.Roll - targetRotation.Roll
-				),
-				sourceLocation - targetLocation,
-				sourceScale - targetScale
-			);
-		}
-		// Step 5: Clear the Character Movement Mode and set the Movement State to Mantling
-		{
-			CharacterMovement->SetMovementMode(EMovementMode::MOVE_None);
-		}
-		// Step 6: Configure the Mantle Timeline so that it is the same length as the Lerp/Correction curve minus the starting position, and plays at the same speed as the animation. Then start the timeline.
-		{
-			float minTime, maxTime;// minTime is Dummy
-			MantleParams.PositionCorrectionCurve->GetTimeRange(minTime, maxTime);
-			float newLength = maxTime - MantleParams.StartingPosition;
+		FVector targetLocation = MantleTarget.GetLocation();
+		FRotator targetRotation = MantleTarget.Rotator();
+		FVector targetScale = MantleTarget.GetScale3D();
+		
+		MantleAnimatedStartOffset = FTransform(
+			FRotator(sourceRotation.Pitch - targetRotation.Pitch,
+				sourceRotation.Yaw - targetRotation.Yaw,
+				sourceRotation.Roll - targetRotation.Roll
+			),
+			sourceLocation - targetLocation,
+			sourceScale - targetScale
+		);
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, FString::Printf(TEXT("MantleActualStartOffset: %s"), *MantleAnimatedStartOffset.ToString()));
+	}
+	// Step 5: Clear the Character Movement Mode and set the Movement State to Mantling
+	{
+		CharacterMovement->SetMovementMode(EMovementMode::MOVE_None);
+	}
+	// Step 6: Configure the Mantle Timeline so that it is the same length as the Lerp/Correction curve minus the starting position, and plays at the same speed as the animation. Then start the timeline.
+	{
+		float minTime, maxTime;// minTime is Dummy
+		MantleParams.PositionCorrectionCurve->GetTimeRange(minTime, maxTime);
+		float newLength = maxTime - MantleParams.StartingPosition;
 
-			MantleTimeline->SetTimelineLength(newLength);
-			MantleTimeline->SetPlayRate(MantleParams.PlayRate);
-			MantleTimeline->PlayFromStart();
-		}
-		// Step 7: Play the Anim Montage if valid.
+		MantleTimeline->SetTimelineLength(newLength);
+		MantleTimeline->SetPlayRate(MantleParams.PlayRate);
+		MantleTimeline->PlayFromStart();
+		//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("componentWorldTransform: %lf"), newLength));
+		//UE_LOG(LogTemp, Warning, TEXT("newLength: %f, maxTime: %f"), MantleParams.StartingPosition, maxTime);
+	}
+	// Step 7: Play the Anim Montage if valid.
+	{
+		if (!MantleParams.AnimMontage)
 		{
-			if (!MantleParams.AnimMontage)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("MantleParams.AnimMontage is null"));
-				return;
-			}
-			CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(
-				MantleParams.AnimMontage,
-				MantleParams.PlayRate,
-				EMontagePlayReturnType::MontageLength,
-				MantleParams.StartingPosition
-			);
+			UE_LOG(LogTemp, Warning, TEXT("MantleParams.AnimMontage is null"));
+			return;
 		}
+		CharacterRef->GetMesh()->GetAnimInstance()->Montage_Play(
+			MantleParams.AnimMontage,
+			MantleParams.PlayRate,
+			EMontagePlayReturnType::MontageLength,
+			MantleParams.StartingPosition
+		);
 	}
 }
 
@@ -483,13 +515,16 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			1.0f
 		))
 		{
+			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Green, TEXT("UMantleSystem::MantleCheck CapsuleTraceSingle Is Successed"));
 			bool bWalkable = CharacterMovement->IsWalkable(HitResult);
 			bool bBlockingHit = HitResult.bBlockingHit;
 			bool bInitialOverlap = !HitResult.bStartPenetrating; // InitialOverlap
-			if (bWalkable && bBlockingHit && bInitialOverlap)
+			
+			if (!bWalkable && bBlockingHit && bInitialOverlap)
 			{
 				initialTraceImpactPoint = HitResult.ImpactPoint;
 				initialTraceNormal = HitResult.ImpactNormal;
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("initialTraceImpactPoint: %s, initialTraceNormal: %s"), *initialTraceImpactPoint.ToString(), *initialTraceNormal.ToString()));
 			}
 			else
 			{
@@ -499,7 +534,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 		}
 		else
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("UMantleSystem::MantleCheck CapsuleTraceSingle Is Failed"));
+			//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("UMantleSystem::MantleCheck CapsuleTraceSingle Is Failed"));
 			return false;
 		}
 	}
@@ -520,8 +555,8 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			GetTraceDebugType(DebugType),
 			HitResult,
 			true,
-			FLinearColor::Yellow,
-			FLinearColor::Red,
+			FLinearColor::White,
+			FLinearColor::Green,
 			1.0f
 		))
 		{
@@ -530,10 +565,12 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			if (bWalkable && bBlockingHit)
 			{
 				downTraceLocation = FVector(HitResult.Location.X, HitResult.Location.Y, HitResult.ImpactPoint.Z);
-				hitComponent = HitResult.GetComponent();
+				hitComponent = HitResult.Component.Get();
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("GetComponentToWorld: %s"), *hitComponent->GetComponentToWorld().ToString()));
 			}
 			else
 			{
+				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("bWalkable: %d, bBlockingHit: %d"), bWalkable, bBlockingHit));
 				UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleCheck bWalkable && bBlockingHit Is False"));
 				return false;
 			}
@@ -589,6 +626,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 		hitComponent,
 		targetTransform
 	);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("hitComponent: %s, targetTransform: %s"), *hitComponent->GetName(), *targetTransform.ToString()));
 	MantleStart(mantleHeight, mantleLedgeWS, mantleType);
 	return true;
 }
@@ -644,11 +682,11 @@ bool UMantleSystem::SetActorLocationAndRotation(FVector NewLocation, FRotator Ne
 	
 	if (DebugType != EDrawDebugTrace::None)
 	{
-		FString DebugMessage = FString::Printf(TEXT("Location: %s, Rotation: %s, Success: %s"), 
+		/*FString DebugMessage = FString::Printf(TEXT("Location: %s, Rotation: %s, Success: %s"), 
 			*NewLocation.ToString(), 
 			*NewRotation.ToString(), 
 			ReturnValue ? TEXT("True") : TEXT("False"));
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, DebugMessage);
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Yellow, DebugMessage);*/
 	}
 	
 	return ReturnValue;

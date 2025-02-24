@@ -112,20 +112,33 @@ void UInteractor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 		);
 		if (bHit) 
 		{
-			if (InteractionActor == nullptr || HitResult.GetActor() != InteractionActor)
+			if (AActor* HitActor = HitResult.GetActor())
 			{
-				if (HitResult.GetActor()->GetComponentByClass(UInteractionComponent::StaticClass()))
+				if (UInteractionComponent* InteractionComp = HitActor->FindComponentByClass<UInteractionComponent>())
 				{
-					if (HasInteraction)
+					if (InteractionComp->IsActive())
 					{
-						StopLastIntteraction();
+						if (InteractionActor == nullptr || HitActor != InteractionActor)
+						{
+							if (HasInteraction)
+							{
+								StopLastIntteraction();
+							}
+							InteractionActor = HitActor;
+							InteractionBP = Cast<AInteraction>(InteractionActor);
+							if (InteractionBP)
+							{
+								InteractionBP->Marked = true;
+								HasInteraction = true;
+							}
+						}
 					}
-					InteractionActor = HitResult.GetActor();
-					InteractionBP = Cast<AInteraction>(InteractionActor);
-					if (InteractionBP)
+					else
 					{
-						InteractionBP->Marked = true;
-						HasInteraction = true;
+						if (HasInteraction)
+						{
+							StopLastIntteraction();
+						}
 					}
 				}
 				else

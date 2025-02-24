@@ -296,6 +296,8 @@ protected:
 	UFUNCTION()
 	void Dodge();
 
+	UFUNCTION()
+	void Jumping();
 
 	UFUNCTION()
 	void FlipFlapCameraChange();
