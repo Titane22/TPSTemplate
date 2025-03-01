@@ -24,6 +24,8 @@
 #include "./Public/Weapon/Interactor.h"
 #include "./Public/Weapon/IWeaponPickup.h"
 #include "./Public/Widget/W_DynamicWeaponHUD.h"
+#include "Objects/CoverComponent.h"
+#include "Objects/CoverableActor.h"
 #include "Blueprint/UserWidget.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -76,6 +78,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
 	MantleComponent = CreateDefaultSubobject<UMantleSystem>(TEXT("Mantle Component"));
+	CoverComponent = CreateDefaultSubobject<UCoverComponent>(TEXT("Cover Component"));
 
 	// Component Hierarchy Setup
 	// Set up parent-child relationships for components
@@ -85,7 +88,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	Handgun->SetupAttachment(RootComponent);
 	PrimaryChild->SetupAttachment(Primary);
 	HandgunChild->SetupAttachment(Handgun);
-
+	
 	// Weapon Class Setup
 	if (PrimaryChild)
 	{
@@ -136,6 +139,168 @@ void ATPSTemplateCharacter::OnLanded(const FHitResult& Hit)
 	Super::OnLanded(Hit);
 
 	ImpactOnLand();
+}
+
+void ATPSTemplateCharacter::EnterCoverState()
+{
+    bIsCovering = true;
+
+    if (CurrentCoverInfo.CoverActor)
+    {
+        // 커버 위치 및 회전 설정
+		FRotator targetRotation = CurrentCoverInfo.ImpactNormal.Rotation();
+        // 회전 설정
+        SetActorRotation(targetRotation);
+        
+        // 앉기 상태로 전환 (필요한 경우)
+        if (!bIsCrouched)
+        {
+            // TODO: ToggleCrouch();
+        }
+
+        if (LocomotionBP)
+        {
+            // TODO: LocomotionBP->SetCoverState(true);
+            GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("LocomotionBP->SetCoverState"));
+        }
+    }
+    else
+    {
+        GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("CurrentCoverInfo.CoverActor Is Null"));
+    }
+}
+
+void ATPSTemplateCharacter::ExitCoverState()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("ExitCoverState()"));
+	bIsCovering = false;
+
+	// 앉은 상태에서 일어서기 (필요한 경우)
+	if (bIsCrouched)
+	{
+		// TODO: ToggleCrouch();
+	}
+
+	if (IsAim)
+	{
+		bUseControllerRotationYaw = true;
+	}
+	else
+	{
+		bUseControllerRotationYaw = false;
+	}
+
+	if (LocomotionBP)
+	{
+		// TODO: LocomotionBP->SetCoverState(false);
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("LocomotionBP->SetCoverState"));
+	}
+}
+
+void ATPSTemplateCharacter::MoveToCover()
+{
+	if (!CurrentCoverInfo.CoverActor)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Green, TEXT("ATPSTemplateCharacter::MoveToCover() Is NULL"));
+		return;
+	}
+
+	CoverTragetLocation = CurrentCoverInfo.ImpactPoint - CurrentCoverInfo.ImpactNormal * 50.0f;
+	CoverTragetLocation.Z = GetActorLocation().Z;
+
+	bIsMovingToCover = true;
+	// 캐릭터를 커버 방향으로 회전
+	FVector DirectionToCover = (CoverTragetLocation - GetActorLocation()).GetSafeNormal();
+	FRotator TargetRotation = DirectionToCover.Rotation();
+	SetActorRotation(TargetRotation);
+
+	GetWorldTimerManager().SetTimer(
+		MoveToCoverTimeHandle,
+		this,
+		&ATPSTemplateCharacter::UpdateCoverMovement,
+		0.01f,
+		true
+	);
+}
+
+void ATPSTemplateCharacter::UpdateCoverMovement()
+{
+	if (!bIsMovingToCover || !CurrentCoverInfo.CoverActor)
+	{
+		CancelCoverMove();
+		return;
+	}
+
+	FVector currentLocation = GetActorLocation();
+
+	FVector directionToCover = (CoverTragetLocation - currentLocation).GetSafeNormal();
+
+	float deltaTime = GetWorld()->GetDeltaSeconds();
+	float moveDistance = MoveToCoverSpeed * deltaTime;
+
+	float distanceToCover = FVector::Dist(currentLocation, CoverTragetLocation);
+
+	if (distanceToCover <= moveDistance)
+	{
+		SetActorLocation(CoverTragetLocation);
+
+		CancelCoverMove();
+
+		EnterCoverState();
+	}
+	else
+	{
+		FVector newLocation = currentLocation + directionToCover * moveDistance;
+		SetActorLocation(newLocation);
+
+		FRotator currentRotation = GetActorRotation();
+		FRotator targetRotation = directionToCover.Rotation();
+		FRotator newRotation = FMath::RInterpTo(currentRotation, targetRotation, deltaTime, 5.0f);
+		SetActorRotation(newRotation);
+
+	}
+}
+
+void ATPSTemplateCharacter::CancelCoverMove()
+{
+	if (bIsMovingToCover)
+	{
+		GetWorldTimerManager().ClearTimer(MoveToCoverTimeHandle);
+
+		bIsMovingToCover = false;
+	}
+}
+
+
+void ATPSTemplateCharacter::SetCanTakeCover(bool bCanCover, const FCoverInfo& CoverInfo)
+{
+	bCanTakeCover = bCanCover;
+
+	if (bCanCover && CoverInfo.CoverActor)
+	{
+		CurrentCoverInfo = CoverInfo;
+		
+		if (ACoverableActor* CoverableActor = Cast<ACoverableActor>(CoverInfo.CoverActor))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("CoverableActor->ShowCoverPrompt(true)"));
+			CoverableActor->ShowCoverPrompt(true);
+			FVector WidgetLocation = CoverInfo.ImpactPoint + (CoverInfo.ImpactNormal * 30.0f);
+
+			FVector DirectionToPlayer = GetActorLocation() - WidgetLocation;
+			FRotator WidgetRotation = DirectionToPlayer.Rotation();
+
+			CoverableActor->UpdateCoverPromptTransform(DirectionToPlayer, WidgetRotation);
+		}
+
+	}
+	else if(!bCanCover && CoverInfo.CoverActor)
+	{
+		if (ACoverableActor* CoverableActor = Cast<ACoverableActor>(CoverInfo.CoverActor))
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("CoverableActor->ShowCoverPrompt(false)"));
+			CoverableActor->ShowCoverPrompt(false);
+		}
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -196,6 +361,11 @@ void ATPSTemplateCharacter::BeginPlay()
 		InteractorComponent->InteractionMethod = EInteractionMethod::Camera;
 		InteractorComponent->HasInteraction = false;
 		InteractorComponent->InteractorActive = true;
+	}
+
+	if (CoverComponent)
+	{
+		CoverComponent->SetCharacterRef(this);
 	}
 }
 
@@ -550,7 +720,7 @@ void ATPSTemplateCharacter::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData
 
 void ATPSTemplateCharacter::ToggleCrouch(const FInputActionValue& Value)
 {
-    if (!bInteracting)  // 다른 상호작용 중이 아닐 때만
+    if (!bInteracting && !GetCharacterMovement()->IsFalling())  // 다른 상호작용 중이 아닐 때만
     {
         if (!IsCrouch)
         {
@@ -666,6 +836,18 @@ void ATPSTemplateCharacter::Jumping()
 {
 	if (bInteracting || !CanJump())
 		return;
+	if (bCanTakeCover)
+	{
+		if (bIsCovering)
+			ExitCoverState();
+		else if (bIsMovingToCover)
+			CancelCoverMove();
+		else
+			MoveToCover();
+		//EnterCoverState();
+		return;
+	}
+
 	FTimerHandle TimerHandle;
 	if (MantleComponent->MantleGroundCheck())
 	{
@@ -701,6 +883,7 @@ void ATPSTemplateCharacter::Interact()
 {
 	
 }
+
 
 void ATPSTemplateCharacter::FlipFlapCameraChange()
 {

@@ -524,7 +524,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			{
 				initialTraceImpactPoint = HitResult.ImpactPoint;
 				initialTraceNormal = HitResult.ImpactNormal;
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("initialTraceImpactPoint: %s, initialTraceNormal: %s"), *initialTraceImpactPoint.ToString(), *initialTraceNormal.ToString()));
+				//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("initialTraceImpactPoint: %s, initialTraceNormal: %s"), *initialTraceImpactPoint.ToString(), *initialTraceNormal.ToString()));
 			}
 			else
 			{

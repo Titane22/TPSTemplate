@@ -8,6 +8,7 @@
 #include "Public/AnimationState.h"
 #include "Logging/LogMacros.h"
 #include "Components/TimelineComponent.h" 
+#include "Objects/CoverComponent.h"
 #include "TPSTemplateCharacter.generated.h"
 
 // 전방 선언
@@ -113,6 +114,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UMantleSystem* MantleComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UCoverComponent* CoverComponent;
+
 	UPROPERTY()
 	FTimeline CrouchTimeline;
 
@@ -175,6 +179,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bInteracting;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bIsCovering;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsCoverable;
 
 	// State Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
@@ -258,6 +268,25 @@ public:
 	void StartRagdoll();
 
 	virtual void Interact();
+
+	void SetCanTakeCover(bool bCanCover, const FCoverInfo& CoverInfo);
+
+	bool IsInCoverState() const { return bIsInCoverState; }
+
+	bool CanTakeCover() const { return bCanTakeCover; }
+
+	FCoverInfo GetCoverInfo() const { return CurrentCoverInfo; }
+
+	void EnterCoverState();
+
+	void ExitCoverState();
+
+	void MoveToCover();
+
+	void UpdateCoverMovement();
+
+	void CancelCoverMove();
+
 protected:
 
 	/** Called for movement input */
@@ -328,6 +357,22 @@ protected:
 	virtual void Tick(float DeltaTime);
 
 	virtual void OnLanded(const FHitResult& Hit);
+
+private:
+	bool bCanTakeCover;
+
+	bool bIsInCoverState;
+
+	FCoverInfo CurrentCoverInfo;
+
+	bool bIsMovingToCover;
+
+	FVector CoverTragetLocation;
+
+	float MoveToCoverSpeed = 500.0f;
+
+	FTimerHandle MoveToCoverTimeHandle;
+
 public:
 	/** Returns MainCamera subobject **/
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
