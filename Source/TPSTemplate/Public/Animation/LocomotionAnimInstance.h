@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
-#include "TPSTemplate/TPSTemplateCharacter.h"
-#include "../AnimationState.h"
+#include "Characters/TPSTemplateCharacter.h"
+#include "Characters/Player_Base.h"
+#include "Library/AnimationState.h"
 #include "LocomotionAnimInstance.generated.h"
 
 /**

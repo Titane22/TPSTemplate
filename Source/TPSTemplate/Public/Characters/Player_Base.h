@@ -1,32 +1,19 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
-#include "Blueprint/UserWidget.h"
-#include "Public/AnimationState.h"
-#include "Logging/LogMacros.h"
-#include "Components/TimelineComponent.h" 
-#include "Objects/CoverComponent.h"
-#include "TPSTemplateCharacter.generated.h"
+#include "TPSTemplateCharacter.h"
+#include "Components/TimelineComponent.h"
+#include "Player_Base.generated.h"
 
-// 전방 선언
+// Forward declarations
 class USpringArmComponent;
 class UCameraComponent;
 class UInputMappingContext;
 class UInputAction;
-class AMasterWeapon;
-class UHealthComponent;
-class UInteractor;
-class UWeaponSystem;
-class ULocomotionAnimInstance;
-class UWeaponDataAsset;
-class UW_DynamicWeaponHUD;
 class UMantleSystem;
 struct FInputActionValue;
-
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
 
 UENUM(BlueprintType)
 enum class ELandState : uint8
@@ -36,48 +23,44 @@ enum class ELandState : uint8
 	Hard		UMETA(DisplayName = "Hard")
 };
 
-UCLASS(config=Game)
-class ATPSTemplateCharacter : public ACharacter
+/**
+ * Player-specific character class with input handling, camera, and player-only features
+ */
+UCLASS()
+class TPSTEMPLATE_API APlayer_Base : public ATPSTemplateCharacter
 {
 	GENERATED_BODY()
 
 protected:
-	/** Camera boom positioning the camera behind the character */
+	// Camera Components
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	USpringArmComponent* CameraBoom;
 
-	/** Follow camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
 	UCameraComponent* FollowCamera;
 
-	/** Primary Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USceneComponent* Primary;
-
-	/** Hand-Gun Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	USceneComponent* Handgun;
-	
-	/** MappingContext */
+	// Input Actions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputMappingContext* DefaultMappingContext;
 
-	/** Jump Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* JumpAction;
 
-	/** Move Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* MoveAction;
 
-	/** Look Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* LookAction;
 
-	/** Switch Weapons Input Action */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
-	UInputAction* SwitchWeaponsAction;
+	UInputAction* SwitchWeaponsWheelAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SwitchPrimaryWeaponAction;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* SwitchHandgunWeaponAction;
+	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* ShootAction;
 
@@ -92,7 +75,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CrouchAction;
-	
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* DodgeAction;
 
@@ -102,21 +85,11 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CameraChangeAction;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	class UWeaponSystem* WeaponSystem;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	class UHealthComponent* HealthComponent;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	class UInteractor* InteractorComponent;
-
+	// Player-specific Components
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UMantleSystem* MantleComponent;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
-	UCoverComponent* CoverComponent;
-
+	// Timelines
 	UPROPERTY()
 	FTimeline CrouchTimeline;
 
@@ -126,25 +99,43 @@ protected:
 	UPROPERTY()
 	FTimeline ShoulderCameraTimeline;
 
+	// Input Handling Functions
+	void Move(const FInputActionValue& Value);
+	void Look(const FInputActionValue& Value);
+	void ShootFire(const FInputActionValue& Value);
+	void Aim(const FInputActionValue& Value);
+	void Reload();
+	void Sprint(const FInputActionValue& Value);
+	void SprintCompleted(const FInputActionValue& Value);
+	void ToggleCrouch(const FInputActionValue& Value);
+	void Dodge();
+	void Jumping();
+	void FlipFlapCameraChange();
+
+	// Timeline Update Functions
 	UFUNCTION()
 	void UpdateAimView(float Value);
 
 	UFUNCTION()
+	void ShoulderCameraChange(float Value);
+
+	UFUNCTION()
+	void UpdateCrouchHeight();
+
+	UFUNCTION()
 	void PlayDodgeMontage(UAnimMontage* MontageToPlay);
 
+	// Weapon Functions
+	void StopFire();
+	void HandleFiring();
+	bool CanFire();
+	bool CanSwitchWeapon();
+
+	UFUNCTION()
+	void ImpactOnLand();
+
 public:
-	ATPSTemplateCharacter();
-
-	/** Primary Child Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UChildActorComponent* PrimaryChild;
-
-	/** Handgun Child Socket*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UChildActorComponent* HandgunChild;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
-	float TurnRate;
+	APlayer_Base();
 
 	// Movement States
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -175,9 +166,6 @@ public:
 	bool IsJump;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool Dead;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bInteracting;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
@@ -190,10 +178,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
 	ELandState CurrentLandState;
 
-	// 현재 애니메이션 상태
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	EAnimationState CurrentAnimationState;
-
 	// Weapon Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class UW_DynamicWeaponHUD* CurrentWeaponUI;
@@ -204,11 +188,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class AMasterWeapon* CurrentWeapon;
 
-	// Weapon States
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool IsAim;
 
-	// Crosshair UI
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class UUserWidget* UIAmmo;
 
@@ -249,8 +231,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 	FVector TargetArmLengths;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	class ULocomotionAnimInstance* LocomotionBP;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components")
+	float TurnRate;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
 	UCurveFloat* CrouchCurve;
@@ -261,130 +243,38 @@ public:
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
 	UCurveFloat* ShoulderCameraCurve;
 
-	UFUNCTION()
-	void Die();
+	class ULocomotionAnimInstance* LocomotionBP;
 
-	UFUNCTION()
-	void StartRagdoll();
-
-	virtual void Interact();
-
-	void SetCanTakeCover(bool bCanCover, const FCoverInfo& CoverInfo);
-
-	bool IsInCoverState() const { return bIsInCoverState; }
-
-	bool CanTakeCover() const { return bCanTakeCover; }
-
-	FCoverInfo GetCoverInfo() const { return CurrentCoverInfo; }
-
+	// Cover System Functions
 	void EnterCoverState();
-
 	void ExitCoverState();
-
 	void MoveToCover();
-
 	void UpdateCoverMovement();
-
 	void CancelCoverMove();
 
+	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
+
+	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+
 protected:
-
-	/** Called for movement input */
-	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
-	void Look(const FInputActionValue& Value);
-			
-	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	virtual void SwitchWeapons();
-
-	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	virtual void SwitchToPrimaryWeapon();
-
-	UFUNCTION(BlueprintCallable, Category = "InputAction")
-	virtual void SwitchToHandgunWeapon();
-
-	UFUNCTION()
-	void ShootFire(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void Aim(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void Reload();
-
-	UFUNCTION()
-	void Sprint(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void SprintCompleted(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void ToggleCrouch(const FInputActionValue& Value);
-
-	UFUNCTION()
-	void Dodge();
-
-	UFUNCTION()
-	void Jumping();
-
-	UFUNCTION()
-	void FlipFlapCameraChange();
-
-	UFUNCTION()
-	void ShoulderCameraChange(float Value);
-
-	UFUNCTION()
-	void UpdateCrouchHeight();
-
-	void StopFire();
-
-	void HandleFiring();
-
-	bool CanFire();
-
-	bool CanSwitchWeapon();
-
-	virtual void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponDataAsset* CurrentWeaponDataAsset);
-
-	UFUNCTION()
-	void ImpactOnLand();
-	// APawn interface
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	virtual void BeginPlay();
-
-	virtual void Tick(float DeltaTime);
-
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 	virtual void OnLanded(const FHitResult& Hit);
 
-private:
-	bool bCanTakeCover;
+	UFUNCTION()
+	UUserWidget* AddWeaponUI(UWeaponData* WeaponData);
 
-	bool bIsInCoverState;
+	virtual void SwitchWeapons() override;
+	virtual void SwitchToPrimaryWeapon() override;
+	virtual void SwitchToHandgunWeapon() override;
+	virtual void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponData* CurrentWeaponDataAsset) override;
+	virtual void Interact() override;
 
-	FCoverInfo CurrentCoverInfo;
+	UFUNCTION()
+	void ClearWeaponUI();
 
-	bool bIsMovingToCover;
-
-	FVector CoverTragetLocation;
-
-	float MoveToCoverSpeed = 500.0f;
-
-	FTimerHandle MoveToCoverTimeHandle;
-
-public:
-	/** Returns MainCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-	/** Returns HealthComponent subobject **/
-	FORCEINLINE class UHealthComponent* GetHealthComponent() const { return HealthComponent; }
-
-	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent);
 };
-

@@ -4,8 +4,9 @@
 
 #include "CoreMinimal.h"
 #include "Engine/DataAsset.h"
-#include "WeaponDataAsset.generated.h"
+#include "WeaponData.generated.h"
 
+class UNiagaraSystem;
 class AMasterWeapon;
 class UW_DynamicWeaponHUD;
 
@@ -28,12 +29,12 @@ enum class EFireMode : uint8
  * 
  */
 UCLASS()
-class TPSTEMPLATE_API UWeaponDataAsset : public UPrimaryDataAsset
+class TPSTEMPLATE_API UWeaponData : public UPrimaryDataAsset
 {
 	GENERATED_BODY()
 
 public:
-	UWeaponDataAsset();
+	UWeaponData();
 
 	// Weapon Details
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
@@ -43,7 +44,7 @@ public:
 	EWeaponType WeaponType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Details")
-	AMasterWeapon* WeaponClass;
+	TSubclassOf<AMasterWeapon> WeaponClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Mode Data")
 	EFireMode FireMode;
@@ -90,4 +91,48 @@ public:
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	USoundBase* FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	USoundBase* HitMarkerSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	USoundBase* KillSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	USoundBase* EmptySound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	USoundAttenuation* SoundAttenuation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
+	USoundConcurrency* SoundConcurrency;
+
+	// VFX
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	UNiagaraSystem* MuzzleFlashVFX;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	TSubclassOf<AActor> BulletTraceClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "VFX")
+	TSubclassOf<UUserWidget> HitMarkerUI;
+
+	// Ammo Data
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	int32 CurrentAmmo = 30;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	int32 MaxAmmo = 90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	int32 ClipAmmo = 30;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	int32 DifferentAmmo = 90;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	int32 AmmoCount = 1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Ammo")
+	bool bShortGunTrace = false;
 };

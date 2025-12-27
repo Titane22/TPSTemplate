@@ -3,11 +3,10 @@
 
 #include "Weapon/IWeaponPickup.h"
 #include "Widget/W_WeaponPickup.h"
-#include "../MasterWeapon.h"
+#include "Weapon/MasterWeapon.h"
 #include "./Weapon/InteractionComponent.h"
 #include "./Weapon/Interactor.h"
-#include "./Weapon/DA_Rifle.h"
-#include "Weapon_AssultRifle.h"
+#include "Data/WeaponData.h"
 
 AIWeaponPickup::AIWeaponPickup()
 	:Super()
@@ -15,7 +14,7 @@ AIWeaponPickup::AIWeaponPickup()
 	PrimaryActorTick.bCanEverTick = true;
 	Widget = CreateDefaultSubobject<UWidgetComponent>(TEXT("Widget"));
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Weapon Mesh"));
-	WeaponClass = CreateDefaultSubobject<AWeapon_AssultRifle>(TEXT("WeaponClass"));
+	WeaponClass = CreateDefaultSubobject<AMasterWeapon>(TEXT("WeaponClass"));
 
 	Widget->SetupAttachment(RootComponent);
 	WeaponMesh->SetupAttachment(RootComponent);
@@ -43,7 +42,7 @@ void AIWeaponPickup::BeginPlay()
 		return;
 	}
 
-	WeaponData = NewObject<UDA_Rifle>();
+	WeaponData = NewObject<UWeaponData>();
 	if (!WeaponData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WeaponData Is NULL"));

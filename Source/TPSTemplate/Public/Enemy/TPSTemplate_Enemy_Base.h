@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "../../TPSTemplateCharacter.h"
+#include "Characters/TPSTemplateCharacter.h"
 #include "TPSTemplate_Enemy_Base.generated.h"
 
 /**

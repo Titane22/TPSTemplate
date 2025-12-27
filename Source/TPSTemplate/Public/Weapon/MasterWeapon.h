@@ -4,12 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "Public/AnimationState.h"
+#include "Library/AnimationState.h"
 #include "MasterWeapon.generated.h"
 
-class UWeaponDataAsset;
+class UWeaponData;
+class UWeaponSystem;
 class ATPSTemplateCharacter; 
-class ATPSTemplate_Player;
+class APlayer_Base;
 class AIWeaponPickup;
 
 UCLASS()
@@ -23,6 +24,11 @@ public:
 
 	virtual void Fire();
 	virtual void Reload();
+	
+	// Hit 처리 함수
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	bool ApplyHit(const FHitResult HitResult, bool& ValidHit);
+	
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -30,13 +36,13 @@ protected:
 public:	
 	// 컴포넌트들
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class USceneComponent* DefaultSceneRoot;
+	USceneComponent* DefaultSceneRoot;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class USkeletalMeshComponent* WeaponMesh;
+	USkeletalMeshComponent* WeaponMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	class UWeaponSystem* WeaponSystem;
+	UWeaponSystem* WeaponSystem;
 
 	// Interaction Weapon Pickup
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
@@ -46,7 +52,7 @@ public:
 	EAnimationState WeaponType;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UWeaponDataAsset* WeaponData;
+	UWeaponData* WeaponData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bReloading;
@@ -54,11 +60,23 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bAutoReload;
 
-	// Hit 처리 함수
-	UFUNCTION(BlueprintCallable, Category = "Weapon")
-	bool ApplyHit(const FHitResult HitResult, bool& ValidHit);
+protected:
+	USceneComponent* Muzzle;
 
 private:
 	// 컴포넌트 초기화 함수
 	void InitializeComponents();
+
+	// Fire helper functions
+	void ApplyCameraShake(APlayerController* PC);
+	bool PerformCameraTrace(APlayerCameraManager* CameraManager, FHitResult& OutHitResult);
+	void ExecuteFireSequence(const FHitResult& CameraHitResult);
+
+	void FireBullet(FHitResult Hit, bool bReturnHit);
+
+	void FireFX();
+
+	void FireBlankTracer();
+
+	void RandPointInCircle(float Radius, float& PointX, float& PointY);
 };

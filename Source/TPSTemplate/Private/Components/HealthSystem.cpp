@@ -1,11 +1,11 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "HealthComponent.h"
-#include "TPSTemplateCharacter.h"
+#include "Components/HealthSystem.h"
+#include "Characters/TPSTemplateCharacter.h"
 
 // Sets default values for this component's properties
-UHealthComponent::UHealthComponent()
+UHealthSystem::UHealthSystem()
 {
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
@@ -15,7 +15,7 @@ UHealthComponent::UHealthComponent()
 
 
 // Called when the game starts
-void UHealthComponent::BeginPlay()
+void UHealthSystem::BeginPlay()
 {
 	Super::BeginPlay();
 
@@ -33,7 +33,7 @@ void UHealthComponent::BeginPlay()
 	}
 }
 
-bool UHealthComponent::ApplyDamage(float Damage)
+bool UHealthSystem::ApplyDamage(float Damage)
 {
 	Health = Health - Damage;
 	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Hit!!!!"));
@@ -51,28 +51,28 @@ bool UHealthComponent::ApplyDamage(float Damage)
 	}
 }
 
-bool UHealthComponent::Heal(float HealAmount)
+bool UHealthSystem::Heal(float HealAmount)
 {
 	Health = Health + HealAmount;
 	return true;
 }
 
-float UHealthComponent::GetCurrentHealth()
+float UHealthSystem::GetCurrentHealth()
 {
 	return Health;
 }
 
-void UHealthComponent::SetCurrentHealth(float Value)
+void UHealthSystem::SetCurrentHealth(float Value)
 {
 	Health = Value;
 }
 
-float UHealthComponent::GetMaxHealth()
+float UHealthSystem::GetMaxHealth()
 {
 	return MaxHealth;
 }
 
-void UHealthComponent::SetMaxHealth(float Value)
+void UHealthSystem::SetMaxHealth(float Value)
 {
 	MaxHealth = Value;
 }

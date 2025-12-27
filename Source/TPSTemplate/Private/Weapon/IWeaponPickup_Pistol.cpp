@@ -3,8 +3,7 @@
 
 #include "Weapon/IWeaponPickup_Pistol.h"
 #include "Widget/W_WeaponPickup.h"
-#include "./Weapon/IWeaponPickup_Pistol.h"
-#include "./Weapon/DA_Pistol.h"
+#include "Data/WeaponData.h"
 
 AIWeaponPickup_Pistol::AIWeaponPickup_Pistol()
 	:Super()
@@ -32,7 +31,7 @@ void AIWeaponPickup_Pistol::BeginPlay()
 		return;
 	}
 
-	WeaponData = NewObject<UDA_Pistol>();
+	WeaponData = NewObject<UWeaponData>();
 	if (!WeaponData)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("WeaponData Is NULL"));

@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "Public/AnimationState.h"
+#include "Library/AnimationState.h"
 #include "NiagaraSystem.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -13,7 +13,7 @@
 class USkeletalMesh;
 class AMasterWeapon;
 class ATPSTemplateCharacter;
-class UWeaponDataAsset;
+class UWeaponData;
 class UUserWidget;
 class UNiagaraSystem;
 class USceneComponent;
@@ -58,13 +58,6 @@ struct FWeapon_Details
 	};
 };
 
-UENUM(BlueprintType)
-enum class EWeaponState : uint8
-{
-	Equip       UMETA(DisplayName = "Equip"),
-	Unequip     UMETA(DisplayName = "Unequip")
-};
-
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TPSTEMPLATE_API UWeaponSystem : public UActorComponent
 {
@@ -74,64 +67,30 @@ public:
 	// Sets default values for this component's properties
 	UWeaponSystem();
 
-	UFUNCTION()
-	void Rifle_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName);
-
-	UFUNCTION()
-	void Pistol_State(AMasterWeapon* toSetMasterWeapon, EAnimationState toSetAnimationState, EWeaponState curWeaponState, FName toSetEquipSocketName, FName toSetUnequipSocketName);
-
-	UFUNCTION()
-	void RifleEquip(FName SocketName);
-
-	UFUNCTION()
-	void RifleUnequip(FName SocketName);
-
-	UFUNCTION()
-	void PistolEquip(FName SocketName);
-
-	UFUNCTION()
-	void PistolUnequip(FName SocketName);
-
 	bool FireCheck(int32 AmmoCount);
 
-	void FireFX(USoundBase* Sound, FVector Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* ConcurrencySettings);
+	void FireFX(USoundBase* Sound, FVector Location, USoundAttenuation* AttenuationSettings, USoundConcurrency* Concurrency);
 
 	void EmptyFX(USoundBase* Sound);
 
-	void MuzzleVFX(UNiagaraSystem* SystemTemplate, USceneComponent* AttachToComponent);
+	void MuzzleVFX(UNiagaraSystem* NiagaraSystem, USceneComponent* AttachToComponent);
 
-	void FireMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);
+	void FireMontage(UAnimMontage* FireAnim);
 
 	bool CheckAmmo();
 
-	float ReloadMontage(UAnimMontage* PistolAnim, UAnimMontage* RifleAnim);
+	float ReloadMontage(UAnimMontage* ReloadAnim);
 
 	void ReloadCheck();
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
-
-public:	
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
 public:
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	USkeletalMesh* WeaponMesh;
 
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	AMasterWeapon* MasterWeapon;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
-	EAnimationState AnimationState;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	bool bIsDryAmmo;
 
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "UI")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	UUserWidget* CrosshairWidget;
 
 	UPROPERTY()
@@ -146,12 +105,5 @@ public:
 		}
 	};
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
 	ATPSTemplateCharacter* CharacterRef;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UWeaponDataAsset* PistolData;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UWeaponDataAsset* RifleData;
 };

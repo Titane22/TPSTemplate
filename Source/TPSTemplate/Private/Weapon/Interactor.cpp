@@ -4,7 +4,7 @@
 #include "Weapon/Interactor.h"
 #include "Weapon/InteractionComponent.h"
 #include "Weapon/Interaction.h"
-#include "../TPSTemplateCharacter.h"
+#include "Characters/Player_Base.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 

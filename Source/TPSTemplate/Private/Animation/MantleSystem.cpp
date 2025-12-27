@@ -2,7 +2,7 @@
 
 
 #include "Animation/MantleSystem.h"
-#include "TPSTemplate/TPSTemplateCharacter.h"
+#include "Characters/TPSTemplateCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -451,6 +451,13 @@ void UMantleSystem::MantleStart(float MantleHeight, FMantleComponentAndTransform
 	}
 	// Step 6: Configure the Mantle Timeline so that it is the same length as the Lerp/Correction curve minus the starting position, and plays at the same speed as the animation. Then start the timeline.
 	{
+		if (!MantleParams.PositionCorrectionCurve)
+		{
+			UE_LOG(LogTemp, Error, TEXT("MantleParams.PositionCorrectionCurve is NULL! Please configure Mantle Assets in Blueprint."));
+			CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+			return;
+		}
+
 		float minTime, maxTime;// minTime is Dummy
 		MantleParams.PositionCorrectionCurve->GetTimeRange(minTime, maxTime);
 		float newLength = maxTime - MantleParams.StartingPosition;

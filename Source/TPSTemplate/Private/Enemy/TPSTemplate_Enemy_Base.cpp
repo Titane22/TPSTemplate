@@ -2,24 +2,8 @@
 
 
 #include "Enemy/TPSTemplate_Enemy_Base.h"
-#include "Engine/LocalPlayer.h"
-#include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "../WeaponSystem.h"
-#include "../HealthComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "GameFramework/SpringArmComponent.h"
-#include "GameFramework/Controller.h"
-#include "EnhancedInputComponent.h"
-#include "EnhancedInputSubsystems.h"
-#include "InputActionValue.h"
-#include "Animation/LocomotionAnimInstance.h"
-#include "../WeaponDataAsset.h"
-#include "../Public/Weapon_AssultRifle.h"
-#include "../Public/AWeapon_Handgun.h"
-#include "../Public/Weapon/DA_Rifle.h"
-#include "../Public/Weapon/DA_Pistol.h"
-#include "../Public/Widget/W_DynamicWeaponHUD.h"
 #include "Enemy/TPSTemplate_AIController.h"
 
 ATPSTemplate_Enemy_Base::ATPSTemplate_Enemy_Base()
@@ -64,37 +48,4 @@ void ATPSTemplate_Enemy_Base::BeginPlay()
 			}
 		}
 	}
-
-	if (CrouchCurve)
-	{
-		// TODO: Apply Crouch Timeline
-		FOnTimelineFloat TimelineCallback;
-		TimelineCallback.BindUFunction(this, FName("UpdateCrouchHeight"));
-		CrouchTimeline.AddInterpFloat(CrouchCurve, TimelineCallback);
-	}
-
-	if (AimCurve)
-	{
-		FOnTimelineFloat TimelineCallback;
-		TimelineCallback.BindUFunction(this, FName("UpdateAimView"));
-		AimTimeline.AddInterpFloat(AimCurve, TimelineCallback);
-		AimTimeline.SetPlayRate(4.0f);
-	}
-
-	if (CrouchCurve)
-	{
-		// TODO: Apply Crouch Timeline
-		FOnTimelineFloat TimelineCallback;
-		TimelineCallback.BindUFunction(this, FName("ShoulderCameraChange"));
-		ShoulderCameraTimeline.AddInterpFloat(CrouchCurve, TimelineCallback);
-		ShoulderCameraTimeline.SetPlayRate(4.0f);
-	}
-
-	// Sequence 1
-	WeaponSystem->CharacterRef = this;
-	HealthComponent->CharacterRef = this;
-
-	// Sequence 2
-	CameraBoom->SocketOffset = FVector(0.0f, ShoulderYOffset, ShoulderZOffset);
-	CameraBoom->TargetArmLength = TargetArmLengths.X;
 }

@@ -9,7 +9,7 @@
 
 
 class AMasterWeapon;
-class UWeaponDataAsset;
+class UWeaponData;
 class UW_WeaponPickup;
 
 /**
@@ -40,7 +40,7 @@ public:
 	AMasterWeapon* WeaponClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	UWeaponDataAsset* WeaponData;
+	UWeaponData* WeaponData;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	UW_WeaponPickup* WidgetRef;

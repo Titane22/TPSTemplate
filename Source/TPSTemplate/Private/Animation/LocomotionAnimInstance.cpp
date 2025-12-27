@@ -2,7 +2,8 @@
 
 #include "Animation/LocomotionAnimInstance.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "TPSTemplate/TPSTemplateCharacter.h"
+#include "Characters/TPSTemplateCharacter.h"
+#include "Characters/Player_Base.h"
 
 void ULocomotionAnimInstance::NativeInitializeAnimation()
 {
@@ -14,7 +15,7 @@ void ULocomotionAnimInstance::NativeInitializeAnimation()
         CharacterRef = Cast<ATPSTemplateCharacter>(OwningActor);
         if (CharacterRef)
         {
-            CharacterRef->LocomotionBP = this;
+            //CharacterRef->LocomotionBP = this;
             // Get the movement component
             MovementComponent = CharacterRef->GetCharacterMovement();
         }
@@ -37,8 +38,8 @@ void ULocomotionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     Velocity = MovementComponent->Velocity;
     GroundSpeed = FVector2D(Velocity.X, Velocity.Y).Length();
     /*
-        Set Should Move to true only if ground speed is above a small threshold 
-        (to prevent incredibly small velocities from triggering animations) and 
+        Set Should Move to true only if ground speed is above a small threshold
+        (to prevent incredibly small velocities from triggering animations) and
         if there is currently acceleration (input) applied.
     */
     Acceleration = MovementComponent->GetCurrentAcceleration();
@@ -48,7 +49,7 @@ void ULocomotionAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
     */
     bIsFalling = MovementComponent->IsFalling();
 
-    // Sequence 4 
+    // Sequence 4
     UpdateLocomotionDirection();
 }
 
@@ -58,17 +59,23 @@ void ULocomotionAnimInstance::UpdateCharacterState()
     UpdateWallDetection();
     RunningIntoWall();
 
-    bIsCrouching = CharacterRef->IsCrouch;
-    bIsSprint = CharacterRef->IsSprint;
-    LandState = CharacterRef->CurrentLandState;
+    // Player-specific properties need to be accessed from APlayer_Base
+    if (APlayer_Base* PlayerRef = Cast<APlayer_Base>(CharacterRef))
+    {
+        bIsCrouching = PlayerRef->IsCrouch;
+        bIsSprint = PlayerRef->IsSprint;
+        LandState = PlayerRef->CurrentLandState;
+        bIsJump = PlayerRef->IsJump;
+        bIsAim = PlayerRef->IsAim;
+        Pitch = (PlayerRef->GetBaseAimRotation() - PlayerRef->GetActorRotation()).GetNormalized().Pitch;
+        bIsWeaponEquip = PlayerRef->IsWeaponEquip;
+        bIsPistolEquip = PlayerRef->IsPistolEquip;
+        bIsRifleEquip = PlayerRef->IsPrimaryEquip;
+        DirectionAngle = FMath::FInterpTo(DirectionAngle, PlayerRef->TurnRate, GetDeltaSeconds(), 0.0f);
+    }
+
+    // Base character properties (available for all characters)
     AnimationState = CharacterRef->CurrentAnimationState;
-    bIsJump = CharacterRef->IsJump;
-    bIsAim = CharacterRef->IsAim;
-    Pitch = (CharacterRef->GetBaseAimRotation() - CharacterRef->GetActorRotation()).GetNormalized().Pitch;
-    bIsWeaponEquip = CharacterRef->IsWeaponEquip;
-    bIsPistolEquip = CharacterRef->IsPistolEquip;
-    bIsRifleEquip = CharacterRef->IsPrimaryEquip;
-    DirectionAngle = FMath::FInterpTo(DirectionAngle, CharacterRef->TurnRate, GetDeltaSeconds(), 0.0f);
 }
 
 void ULocomotionAnimInstance::RunningIntoWall()
@@ -208,4 +215,3 @@ void ULocomotionAnimInstance::TurnInPlace()
         }
     }
 }
-

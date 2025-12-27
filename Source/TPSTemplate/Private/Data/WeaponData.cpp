@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "WeaponDataAsset.h"
+#include "Data/WeaponData.h"
 
-UWeaponDataAsset::UWeaponDataAsset()
+UWeaponData::UWeaponData()
 {
     // Weapon Details
     WeaponName = TEXT("");

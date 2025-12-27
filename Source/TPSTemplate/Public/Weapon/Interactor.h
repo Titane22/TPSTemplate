@@ -7,6 +7,7 @@
 #include "Library/InteractiveType.h"
 #include "Interactor.generated.h"
 
+class APlayer_Base;
 class ATPSTemplateCharacter;
 class AInteraction;
 class UInteractionComponent;
@@ -42,7 +43,7 @@ public:
 	AInteraction* InteractionBP;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
-	ATPSTemplateCharacter* CharacterRef;
+	APlayer_Base* CharacterRef;
 
 	void StopLastIntteraction();
 
