@@ -8,7 +8,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Animation/AnimInstance.h"
-#include "Animation/TimelineMantle.h"
+#include "Curves/CurveFloat.h"
 #include "DrawDebugHelpers.h"
 
 // Sets default values for this component's properties
@@ -17,8 +17,7 @@ UMantleSystem::UMantleSystem()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
-		
+	
 }
 
 
@@ -34,31 +33,6 @@ void UMantleSystem::BeginPlay()
 		CharacterMovement = CharacterRef->GetCharacterMovement();
 		CapsuleComponent = CharacterRef->GetCapsuleComponent();
 		MainAnimInst = CharacterRef->GetMesh()->GetAnimInstance();
-
-		// TimelineMantle
-		FTransform SpawnTransform;
-		SpawnTransform.SetLocation(FVector(0.0f, 0.0f, 0.0f));
-		SpawnTransform.SetRotation(FVector(0.0f, 0.0f, 0.0f).Rotation().Quaternion());
-		SpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
-
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = CharacterRef;
-		if (ATimelineMantle* TimelineActor = GetWorld()->SpawnActor<ATimelineMantle>(TimelineMantleClass, SpawnTransform, SpawnParams))
-		{
-			MantleTimeline = TimelineActor->TimelineRef;
-			if (MantleTimeline)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Timeline Found"));
-			}
-			else
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Timeline Not Found"));
-			}
-		}
-		else
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("TimelineActor Not Found"));
-		}
 	}
 }
 
@@ -71,6 +45,27 @@ void UMantleSystem::TickComponent(float DeltaTime, ELevelTick TickType, FActorCo
 	if (!CharacterRef || !CharacterMovement)
 	{
 		return;
+	}
+
+	// Manual mantle update (replaces Timeline)
+	if (bIsMantling)
+	{
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+		float ElapsedTime = CurrentTime - MantleStartTime;
+
+		if (ElapsedTime >= MantleDuration)
+		{
+			// Mantle finished
+			MantleEnd();
+		}
+		else
+		{
+			// Calculate BlendIn using linear interpolation (0 to 1 over duration)
+			float Alpha = ElapsedTime / MantleDuration;
+			float BlendIn = MantleTimelineCurve ? MantleTimelineCurve->GetFloatValue(Alpha) : Alpha; 
+
+			MantleUpdate(BlendIn);
+		}
 	}
 
 	if (CharacterMovement->IsFalling() && FallingCatch && CharacterRef->IsControlled())
@@ -99,12 +94,12 @@ bool UMantleSystem::CapsuleHasRoomCheck(UCapsuleComponent* Capsule, FVector Targ
 		);
 
 	FHitResult HitResult;
-	UKismetSystemLibrary::SphereTraceSingleByProfile(
+	UKismetSystemLibrary::SphereTraceSingle(
 		this,
 		StartLocation,
 		EndLocation,
 		Capsule->GetScaledCapsuleRadius() + RadiusOffset,
-		FName("TPS_Character"),
+		TraceChannel,
 		false,
 		TArray<AActor*>(),
 		GetTraceDebugType(DebugType),
@@ -183,9 +178,18 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 {
 	if (!MantleLedgeLS.IsValid())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleUpdate Is NULL"));
+		UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleUpdate - MantleLedgeLS is invalid"));
 		return;
 	}
+
+	// Critical: Check if PositionCorrectionCurve is valid before using
+	if (!MantleParams.PositionCorrectionCurve)
+	{
+		UE_LOG(LogTemp, Error, TEXT("UMantleSystem::MantleUpdate - PositionCorrectionCurve is NULL, ending mantle"));
+		MantleEnd();
+		return;
+	}
+
 	float positionAlpha;
 	float XYCorrectionAlpha;
 	float ZCorrectionAlpha;
@@ -218,12 +222,17 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 	}
 	// Step 2: Update the Position and Correction Alphas using the Position/Correction curve set for each Mantle.
 	{
-		FVector curveVector = MantleParams.PositionCorrectionCurve->GetVectorValue(MantleTimeline->GetPlaybackPosition() + MantleParams.StartingPosition);
+		// Calculate playback position from elapsed time
+		float CurrentTime = GetWorld()->GetTimeSeconds();
+		float ElapsedTime = CurrentTime - MantleStartTime;
+		float PlaybackPosition = FMath::Clamp(ElapsedTime, 0.0f, MantleDuration);
+
+		FVector curveVector = MantleParams.PositionCorrectionCurve->GetVectorValue(PlaybackPosition + MantleParams.StartingPosition);
 		positionAlpha = curveVector.X;
 		XYCorrectionAlpha = curveVector.Y;
 		ZCorrectionAlpha = curveVector.Z;
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("curveVector: %lf"), MantleTimeline->GetPlaybackPosition() + MantleParams.StartingPosition));
-		
+		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("curveVector: %lf"), PlaybackPosition + MantleParams.StartingPosition));
+
 		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("positionAlpha: %lf, XYCorrectionAlpha: %lf, ZCorrectionAlpha: %lf"), curveVector.X, curveVector.Y, curveVector.Z));
 	}
 	// Step 3: Lerp multiple transforms together for independent control over the horizontal and vertical blend
@@ -335,7 +344,6 @@ void UMantleSystem::MantleUpdate(float BlendIn)
 		FRotator newRotation = lerpedTarget.Rotator();
 		FHitResult HitResult;
 
-		//GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("Local - Location: %s"), *newLocation.ToString()));
 		SetActorLocationAndRotation(newLocation, newRotation, false, false, HitResult);
 	}
 }
@@ -348,6 +356,10 @@ void UMantleSystem::MantleEnd()
 		return;
 	}
 
+	// Reset mantling state and set cooldown
+	bIsMantling = false;
+	MantleEndTime = GetWorld()->GetTimeSeconds() + MANTLE_COOLDOWN_TIME;
+
 	CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
 	BroadcastMantleEnd();
 }
@@ -359,6 +371,10 @@ void UMantleSystem::MantleStart(float MantleHeight, FMantleComponentAndTransform
 		UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleStart Is NULL"));
 		return;
 	}
+
+	// Set mantling state
+	bIsMantling = true;
+
 	BroadcastMantleStart();
 	FMantleAsset mantleAsset;
 
@@ -449,24 +465,21 @@ void UMantleSystem::MantleStart(float MantleHeight, FMantleComponentAndTransform
 	{
 		CharacterMovement->SetMovementMode(EMovementMode::MOVE_None);
 	}
-	// Step 6: Configure the Mantle Timeline so that it is the same length as the Lerp/Correction curve minus the starting position, and plays at the same speed as the animation. Then start the timeline.
+	// Step 6: Setup manual timeline tracking (replaces Timeline Component)
 	{
 		if (!MantleParams.PositionCorrectionCurve)
 		{
 			UE_LOG(LogTemp, Error, TEXT("MantleParams.PositionCorrectionCurve is NULL! Please configure Mantle Assets in Blueprint."));
 			CharacterMovement->SetMovementMode(EMovementMode::MOVE_Walking);
+			bIsMantling = false;
 			return;
 		}
 
-		float minTime, maxTime;// minTime is Dummy
+		// Calculate duration from curve length
+		float minTime, maxTime;
 		MantleParams.PositionCorrectionCurve->GetTimeRange(minTime, maxTime);
-		float newLength = maxTime - MantleParams.StartingPosition;
-
-		MantleTimeline->SetTimelineLength(newLength);
-		MantleTimeline->SetPlayRate(MantleParams.PlayRate);
-		MantleTimeline->PlayFromStart();
-		//GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Red, FString::Printf(TEXT("componentWorldTransform: %lf"), newLength));
-		//UE_LOG(LogTemp, Warning, TEXT("newLength: %f, maxTime: %f"), MantleParams.StartingPosition, maxTime);
+		MantleDuration = (maxTime - MantleParams.StartingPosition) / MantleParams.PlayRate;
+		MantleStartTime = GetWorld()->GetTimeSeconds();
 	}
 	// Step 7: Play the Anim Montage if valid.
 	{
@@ -491,6 +504,18 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 		UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleCheck Is NULL"));
 		return false;
 	}
+
+	// Prevent immediate re-mantle (cooldown check)
+	if (bIsMantling)
+	{
+		return false; // Already mantling
+	}
+
+	float CurrentTime = GetWorld()->GetTimeSeconds();
+	if (CurrentTime < MantleEndTime)
+	{
+		return false; // Still in cooldown period
+	}
 	float mantleHeight;
 	FVector initialTraceImpactPoint;
 	FVector initialTraceNormal;
@@ -501,7 +526,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 	// Step 1: Trace forward to find a wall / object the character cannot walk on.
 	{
 		float ZOffset = (ParamTraceSettings.MinLedgeHeight + ParamTraceSettings.MaxLedgeHeight) / 2.0f;
-		FVector StartLocation = GetCapsuleBaseLocation(2.0f) + (GetPlayerMovementInput() * -30.0f) + FVector(0.0f, 0.0f, ZOffset);
+		FVector StartLocation = GetCapsuleBaseLocation(CAPSULE_Z_OFFSET) + (GetPlayerMovementInput() * PLAYER_INPUT_BACKWARD_OFFSET) + FVector(0.0f, 0.0f, ZOffset);
 		FVector EndLocation = StartLocation + GetPlayerMovementInput() * ParamTraceSettings.ReachDistance;
 
 		FHitResult HitResult;
@@ -510,7 +535,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			StartLocation,
 			EndLocation,
 			ParamTraceSettings.ForwardTraceRadius,
-			(ParamTraceSettings.MaxLedgeHeight - ParamTraceSettings.MinLedgeHeight) / 2.0f + 1.0f,
+			(ParamTraceSettings.MaxLedgeHeight - ParamTraceSettings.MinLedgeHeight) / 2.0f + TRACE_CAPSULE_HEIGHT_PADDING,
 			TraceChannel,
 			false,
 			TArray<AActor*>(),
@@ -547,8 +572,8 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 	}
 	// Step 2: Trace downward from the first trace's Impact Point and determine if the hit location is walkable.
 	{
-		FVector EndLocation = FVector(initialTraceImpactPoint.X, initialTraceImpactPoint.Y, GetCapsuleBaseLocation(2.0f).Z) + initialTraceNormal * (-15.0f);
-		FVector StartLocation = EndLocation + FVector(0.0f, 0.0f, ParamTraceSettings.MaxLedgeHeight + ParamTraceSettings.DownwardTraceRadius + 1.0f);
+		FVector EndLocation = FVector(initialTraceImpactPoint.X, initialTraceImpactPoint.Y, GetCapsuleBaseLocation(CAPSULE_Z_OFFSET).Z) + initialTraceNormal * TRACE_NORMAL_OFFSET;
+		FVector StartLocation = EndLocation + FVector(0.0f, 0.0f, ParamTraceSettings.MaxLedgeHeight + ParamTraceSettings.DownwardTraceRadius + TRACE_CAPSULE_HEIGHT_PADDING);
 		FHitResult HitResult;
 
 		if (UKismetSystemLibrary::SphereTraceSingle(
@@ -573,24 +598,21 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 			{
 				downTraceLocation = FVector(HitResult.Location.X, HitResult.Location.Y, HitResult.ImpactPoint.Z);
 				hitComponent = HitResult.Component.Get();
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("GetComponentToWorld: %s"), *hitComponent->GetComponentToWorld().ToString()));
-			}
+				}
 			else
 			{
-				GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Red, FString::Printf(TEXT("bWalkable: %d, bBlockingHit: %d"), bWalkable, bBlockingHit));
-				UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleCheck bWalkable && bBlockingHit Is False"));
+					UE_LOG(LogTemp, Warning, TEXT("UMantleSystem::MantleCheck - Surface not walkable or non-blocking (Walkable: %d, Blocking: %d)"), bWalkable, bBlockingHit);
 				return false;
 			}
 		}
 		else
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("UMantleSystem::MantleCheck SphereTraceSingle Is Failed"));
 			return false;
 		}
 	}
 	// Step 3: Check if the capsule has room to stand at the downward trace's location. If so, set that location as the Target Transform and calculate the mantle height.
 	{
-		FVector TargetLocation = GetCapsuleLocationFromBase(downTraceLocation, 2.0f);
+		FVector TargetLocation = GetCapsuleLocationFromBase(downTraceLocation, CAPSULE_Z_OFFSET);
 		if (CapsuleHasRoomCheck(CapsuleComponent, TargetLocation, 0.0f, 0.0f, GetTraceDebugType(DebugType)))
 		{
 			FVector NormalizedDirection = initialTraceNormal * FVector(-1.0f, -1.0f, 0.0f);
@@ -606,7 +628,6 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 		}
 		else
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("UMantleSystem::MantleCheck CapsuleHasRoomCheck Is Failed"));
 			return false;
 		}
 	}
@@ -614,7 +635,7 @@ bool UMantleSystem::MantleCheck(FMantleTraceSettings ParamTraceSettings)
 	{
 		if (!CharacterMovement->IsFalling())
 		{
-			if (mantleHeight > 125.0f)
+			if (mantleHeight > MANTLE_HEIGHT_THRESHOLD)
 			{
 				mantleType = EMantleType::HighMantle;
 			}
@@ -767,4 +788,3 @@ float UMantleSystem::GetLastDirection()
 	}
 	return MainAnimInst->CalculateDirection(CharacterRef->GetActorForwardVector(), CharacterRef->GetActorRotation());
 }
-

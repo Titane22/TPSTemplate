@@ -99,8 +99,6 @@ struct FMantleAsset
 	float HighStartPosition = 0.0f;
 };
 
-class ATimelineMantle;
-
 USTRUCT(BlueprintType)
 struct FMantleComponentAndTransform
 {
@@ -195,7 +193,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
 	class ATPSTemplateCharacter* CharacterRef;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
 	class UTimelineComponent* MantleTimeline;
 	/// <summary>
 	/// Mantle System
@@ -275,9 +273,27 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
 	FMantleAsset UE5_Quinn_Mantle_1m_LH;
 
+	// Timeline Curve for mantle interpolation
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle|Timeline", meta = (AllowPrivateAccess = "true"))
-	TSubclassOf<ATimelineMantle> TimelineMantleClass;
-public:	
+	UCurveFloat* MantleTimelineCurve;
+
+	// Mantle state tracking
+	bool bIsMantling = false;
+	float MantleEndTime = 0.0f;
+
+	// Manual timeline tracking (replaces Timeline Component)
+	float MantleStartTime = 0.0f;
+	float MantleDuration = 0.0f;
+
+	// Mantle System Constants
+	static constexpr float MANTLE_HEIGHT_THRESHOLD = 125.0f;      // Height threshold for high vs low mantle
+	static constexpr float CAPSULE_Z_OFFSET = 2.0f;               // Default Z offset for capsule calculations
+	static constexpr float TRACE_NORMAL_OFFSET = -15.0f;          // Offset along surface normal for downward trace
+	static constexpr float PLAYER_INPUT_BACKWARD_OFFSET = -30.0f; // Backward offset for player input in traces
+	static constexpr float TRACE_CAPSULE_HEIGHT_PADDING = 1.0f;   // Additional padding for trace capsule height
+	static constexpr float MANTLE_COOLDOWN_TIME = 0.5f;           // Time to wait before allowing another mantle
+
+public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
@@ -292,6 +308,12 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void MantleStart(float MantleHeight, FMantleComponentAndTransform MantleLedgeWS, EMantleType MantleType);
 
+	// Timeline callback functions
+	UFUNCTION()
+	void MantleTimelineUpdate(float BlendIn);
+
+	UFUNCTION()
+	void MantleTimelineFinished();
 
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void SetHandType(EMantleHandType ParamHandType);
