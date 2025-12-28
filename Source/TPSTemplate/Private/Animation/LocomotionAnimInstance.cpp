@@ -4,6 +4,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Characters/TPSTemplateCharacter.h"
 #include "Characters/Player_Base.h"
+#include "Components/EquipmentSystem.h"
 
 void ULocomotionAnimInstance::NativeInitializeAnimation()
 {
@@ -62,15 +63,16 @@ void ULocomotionAnimInstance::UpdateCharacterState()
     // Player-specific properties need to be accessed from APlayer_Base
     if (APlayer_Base* PlayerRef = Cast<APlayer_Base>(CharacterRef))
     {
+        bool bIsPistolEquipped = PlayerRef->GetCurWeaponSlot() == EWeaponSlot::Handgun;
+        bool bIsPrimaryEquipped = PlayerRef->GetCurWeaponSlot() == EWeaponSlot::Primary;
         bIsCrouching = PlayerRef->IsCrouch;
         bIsSprint = PlayerRef->IsSprint;
         LandState = PlayerRef->CurrentLandState;
         bIsJump = PlayerRef->IsJump;
         bIsAim = PlayerRef->IsAim;
         Pitch = (PlayerRef->GetBaseAimRotation() - PlayerRef->GetActorRotation()).GetNormalized().Pitch;
-        bIsWeaponEquip = PlayerRef->IsWeaponEquip;
-        bIsPistolEquip = PlayerRef->IsPistolEquip;
-        bIsRifleEquip = PlayerRef->IsPrimaryEquip;
+        bIsPistolEquip = bIsPistolEquipped;
+        bIsRifleEquip = bIsPrimaryEquipped;
         DirectionAngle = FMath::FInterpTo(DirectionAngle, PlayerRef->TurnRate, GetDeltaSeconds(), 0.0f);
     }
 

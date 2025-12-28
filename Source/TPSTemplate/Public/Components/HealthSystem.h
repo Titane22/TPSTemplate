@@ -27,7 +27,8 @@ protected:
 
 	bool StartWithMaxHealth;
 
-public:	
+public:
+	UPROPERTY()
 	ATPSTemplateCharacter* CharacterRef;
 
 	UFUNCTION(BlueprintCallable, Category = "Health")

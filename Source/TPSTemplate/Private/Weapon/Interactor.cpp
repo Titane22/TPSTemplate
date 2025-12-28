@@ -1,163 +1,357 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "Weapon/Interactor.h"
-#include "Weapon/InteractionComponent.h"
 #include "Weapon/Interaction.h"
+#include "Data/InteractionData.h"
 #include "Characters/Player_Base.h"
 #include "Camera/CameraComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "DrawDebugHelpers.h"
 
-// Sets default values for this component's properties
 UInteractor::UInteractor()
 {
-	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
-	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
-	// ...
+	// Configuration
+	DetectionDistance = 350.0f;
+	SphereTraceRadius = 10.0f;
+	InteractionMethod = EInteractionMethod::Camera;
+	bInteractorActive = true;
+	bShowDebugTrace = false;
+	DetectionUpdateInterval = 0.0f;
+
+	// State
+	bIsInteracting = false;
+	InteractionStartTime = 0.0f;
+	LastDetectionTime = 0.0f;
 }
 
-
-// Called when the game starts
 void UInteractor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// ...
-	
-}
-
-
-void UInteractor::StopLastIntteraction()
-{
-	InteractionActor = nullptr;
-	InteractionBP->Marked = false;
-	InteractionBP = nullptr;
-	HasInteraction = false;
-}
-
-void UInteractor::StartInteraction(AController* Interactor)
-{
-	if (AInteraction* Interaction = Cast<AInteraction>(InteractionActor))
+	// 캐릭터 참조 초기화
+	CharacterRef = Cast<APlayer_Base>(GetOwner());
+	if (!CharacterRef)
 	{
-		Interaction->Interact(Interactor);
-		Reset();
+		UE_LOG(LogTemp, Error, TEXT("UInteractor: Owner is not APlayer_Base! Component will not function."));
+		SetComponentTickEnabled(false);
 	}
 }
 
-void UInteractor::Reset()
-{
-	InteractionActor = nullptr;
-	InteractionBP = nullptr;
-	HasInteraction = false;
-}
-
-EInteractiveType UInteractor::GetInteractionType()
-{
-	if (!InteractionActor)
-		return EInteractiveType();
-	return InteractionActor->GetComponentByClass<UInteractionComponent>()->InteractionType;
-}
-
-// Called every frame
 void UInteractor::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	// ...
-	if (!InteractorActive)
+	// 비활성화 또는 캐릭터 없으면 스킵
+	if (!bInteractorActive || !CharacterRef)
 		return;
+
+	// 업데이트 주기 체크 (성능 최적화)
+	if (DetectionUpdateInterval > 0.0f)
+	{
+		if (GetWorld()->GetTimeSeconds() - LastDetectionTime < DetectionUpdateInterval)
+			return;
+
+		LastDetectionTime = GetWorld()->GetTimeSeconds();
+	}
+
+	// Hold 타입 상호작용 진행 중이면 완료 체크
+	if (bIsInteracting && IsHoldInteraction())
+	{
+		const float HoldProgress = GetHoldProgress();
+		if (HoldProgress >= 1.0f)
+		{
+			// Hold 완료
+			ExecuteCurrentInteraction();
+			bIsInteracting = false;
+		}
+		return; // Hold 중에는 새로운 감지 안 함
+	}
+
+	// 상호작용 감지
+	DetectInteractions();
+}
+
+//==============================================================================
+// Detection
+//==============================================================================
+
+void UInteractor::DetectInteractions()
+{
+	if (!CharacterRef || !GetWorld())
+		return;
+
+	// 트레이스 시작/끝 위치 계산
+	FVector StartLocation, EndLocation;
+	if (!GetTraceStartEnd(StartLocation, EndLocation))
+	{
+		StopCurrentInteraction();
+		return;
+	}
+
+	// Sphere Trace 실행
+	FHitResult HitResult;
+	const bool bHit = UKismetSystemLibrary::SphereTraceSingle(
+		GetWorld(),
+		StartLocation,
+		EndLocation,
+		SphereTraceRadius,
+		UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),
+		false,
+		TArray<AActor*>{ CharacterRef },
+		bShowDebugTrace ? EDrawDebugTrace::ForDuration : EDrawDebugTrace::None,
+		HitResult,
+		true,
+		FLinearColor::Red,
+		FLinearColor::Green,
+		0.1f
+	);
+
+	if (!bHit)
+	{
+		// 아무것도 감지 안 됨
+		StopCurrentInteraction();
+		return;
+	}
+
+	// AInteraction으로 캐스팅 시도
+	AInteraction* HitInteraction = Cast<AInteraction>(HitResult.GetActor());
+	if (!HitInteraction)
+	{
+		// Interaction이 아닌 다른 액터
+		UE_LOG(LogTemp, Warning, TEXT("Hit actor is not AInteraction: %s"), *HitResult.GetActor()->GetName());
+		StopCurrentInteraction();
+		return;
+	}
+
+	// 상호작용 가능 여부 체크
+	AController* PlayerController = CharacterRef->GetController();
+	if (!PlayerController || !HitInteraction->CanInteract(PlayerController))
+	{
+		// 상호작용 불가능
+		UE_LOG(LogTemp, Warning, TEXT("CanInteract failed for: %s (PlayerController: %s)"),
+			*HitInteraction->GetName(),
+			PlayerController ? TEXT("Valid") : TEXT("NULL"));
+		StopCurrentInteraction();
+		return;
+	}
+
+	// 이미 같은 대상이면 유지
+	if (CurrentInteraction.IsValid() && CurrentInteraction.Get() == HitInteraction)
+		return;
+
+	// 새로운 상호작용 시작
+	StopCurrentInteraction();
+	StartNewInteraction(HitInteraction);
+}
+
+bool UInteractor::GetTraceStartEnd(FVector& OutStart, FVector& OutEnd) const
+{
+	if (!CharacterRef)
+		return false;
 
 	switch (InteractionMethod)
 	{
 	case EInteractionMethod::Camera:
-		FVector StartLocation = CharacterRef->GetFollowCamera()->GetComponentLocation();
-		FVector EndLocation = StartLocation + (CharacterRef->GetFollowCamera()->GetForwardVector() * DetectionDistance);
-		// Sphere Trace 설정
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(CharacterRef); 
-		
-		TArray<FHitResult> HitResults;
-		
-		// Sphere Trace 실행
-		//DrawDebugSphere(
-		//	GetWorld(),                          // WorldContextObject
-		//	StartLocation,                       // Start
-		//	10.0f,                              // Radius
-		//	UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),  // TraceChannel
-		//	FColor::Red,                              // bTraceComplex
-		//	false,              // DrawDebugType
-		//	5.0f,                               // bIgnoreSelf
-		//	0,                // TraceHitColor
-		//	1.0f                                // DrawTime
-		//);
+		{
+			UCameraComponent* Camera = CharacterRef->GetFollowCamera();
+			if (!Camera)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("UInteractor: FollowCamera is null!"));
+				return false;
+			}
 
-		// TODO: Change mechanism for recognition the item
-		FHitResult HitResult;
-		bool bHit = UKismetSystemLibrary::SphereTraceSingle(
-			GetWorld(),                          // WorldContextObject
-			StartLocation,                       // Start
-			EndLocation,                         // End
-			10.0f,                              // Radius
-			UEngineTypes::ConvertToTraceType(ECollisionChannel::ECC_Visibility),  // TraceChannel
-			false,                              // bTraceComplex
-			TArray<AActor*>{ CharacterRef },    // ActorsToIgnore
-			EDrawDebugTrace::None,              // DrawDebugType
-			HitResult,                          // OutHit
-			true,                               // bIgnoreSelf
-			FLinearColor::Red,                  // TraceColor
-			FLinearColor::Green,                // TraceHitColor
-			5.0f                                // DrawTime
-		);
-		if (bHit) 
-		{
-			if (AActor* HitActor = HitResult.GetActor())
-			{
-				if (UInteractionComponent* InteractionComp = HitActor->FindComponentByClass<UInteractionComponent>())
-				{
-					if (InteractionComp->IsActive())
-					{
-						if (InteractionActor == nullptr || HitActor != InteractionActor)
-						{
-							if (HasInteraction)
-							{
-								StopLastIntteraction();
-							}
-							InteractionActor = HitActor;
-							InteractionBP = Cast<AInteraction>(InteractionActor);
-							if (InteractionBP)
-							{
-								InteractionBP->Marked = true;
-								HasInteraction = true;
-							}
-						}
-					}
-					else
-					{
-						if (HasInteraction)
-						{
-							StopLastIntteraction();
-						}
-					}
-				}
-				else
-				{
-					if (HasInteraction)
-					{
-						StopLastIntteraction();
-					}
-				}
-			}
+			OutStart = Camera->GetComponentLocation();
+			OutEnd = OutStart + (Camera->GetForwardVector() * DetectionDistance);
+			return true;
 		}
-		else
+
+	case EInteractionMethod::BodyForward:
 		{
-			if (HasInteraction)
-			{
-				StopLastIntteraction();
-			}
+			OutStart = CharacterRef->GetActorLocation();
+			OutEnd = OutStart + (CharacterRef->GetActorForwardVector() * DetectionDistance);
+			return true;
 		}
-		break;
+
+	default:
+		return false;
 	}
 }
 
+void UInteractor::StopCurrentInteraction()
+{
+	if (!CurrentInteraction.IsValid())
+		return;
+
+	// 하이라이트 해제
+	if (AInteraction* Interaction = CurrentInteraction.Get())
+	{
+		Interaction->SetHighlighted(false);
+	}
+
+	CurrentInteraction.Reset();
+}
+
+void UInteractor::StartNewInteraction(AInteraction* NewInteraction)
+{
+	if (!NewInteraction)
+		return;
+
+	CurrentInteraction = NewInteraction;
+	NewInteraction->SetHighlighted(true);
+
+	UE_LOG(LogTemp, Log, TEXT("New interaction detected: %s"), *NewInteraction->GetName());
+}
+
+//==============================================================================
+// Interaction Execution
+//==============================================================================
+
+void UInteractor::TriggerInteraction()
+{
+	if (!CurrentInteraction.IsValid())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("TriggerInteraction: No current interaction!"));
+		return;
+	}
+
+	AInteraction* Interaction = CurrentInteraction.Get();
+	if (!Interaction)
+		return;
+
+	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("TriggerInteraction: Player controller is null!"));
+		return;
+	}
+
+	// Hold 타입 체크
+	if (IsHoldInteraction())
+	{
+		// Hold 시작
+		bIsInteracting = true;
+		InteractionStartTime = GetWorld()->GetTimeSeconds();
+
+		FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData());
+		Interaction->OnInteractionStarted(Context);
+
+		UE_LOG(LogTemp, Log, TEXT("Hold interaction started: %s"), *Interaction->GetName());
+	}
+	else
+	{
+		// 즉시 실행
+		ExecuteCurrentInteraction();
+	}
+}
+
+void UInteractor::CancelInteraction()
+{
+	if (!bIsInteracting || !CurrentInteraction.IsValid())
+		return;
+
+	AInteraction* Interaction = CurrentInteraction.Get();
+	if (!Interaction)
+		return;
+
+	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PlayerController)
+		return;
+
+	bIsInteracting = false;
+	InteractionStartTime = 0.0f;
+
+	FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData());
+	Interaction->OnInteractionCancelled(Context);
+
+	UE_LOG(LogTemp, Log, TEXT("Interaction cancelled: %s"), *Interaction->GetName());
+}
+
+void UInteractor::ExecuteCurrentInteraction()
+{
+	if (!CurrentInteraction.IsValid())
+		return;
+
+	AInteraction* Interaction = CurrentInteraction.Get();
+	if (!Interaction)
+		return;
+
+	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PlayerController)
+	{
+		UE_LOG(LogTemp, Error, TEXT("ExecuteCurrentInteraction: Player controller is null!"));
+		return;
+	}
+
+	// 거리 계산
+	float Distance = 0.0f;
+	if (CharacterRef)
+	{
+		Distance = FVector::Dist(CharacterRef->GetActorLocation(), Interaction->GetActorLocation());
+	}
+
+	// Context 생성 및 실행
+	FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData(), Distance);
+	FInteractionResult Result = Interaction->ExecuteInteraction(Context);
+
+	if (Result.bSuccess)
+	{
+		UE_LOG(LogTemp, Log, TEXT("Interaction succeeded: %s"), *Interaction->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Interaction failed: %s - %s"),
+			*Interaction->GetName(),
+			*Result.FailureReason.ToString());
+	}
+
+	// 상태 리셋
+	bIsInteracting = false;
+	InteractionStartTime = 0.0f;
+
+	// SingleUse면 자동으로 하이라이트 해제
+	UInteractionData* Data = Interaction->GetInteractionData();
+	if (Data && Data->bSingleUse)
+	{
+		StopCurrentInteraction();
+	}
+}
+
+//==============================================================================
+// Getters
+//==============================================================================
+
+UInteractionData* UInteractor::GetCurrentInteractionData() const
+{
+	if (!CurrentInteraction.IsValid())
+		return nullptr;
+
+	AInteraction* Interaction = CurrentInteraction.Get();
+	return Interaction ? Interaction->GetInteractionData() : nullptr;
+}
+
+EInteractiveType UInteractor::GetCurrentInteractionType() const
+{
+	UInteractionData* Data = GetCurrentInteractionData();
+	return Data ? Data->InteractionType : EInteractiveType::Default;
+}
+
+bool UInteractor::IsHoldInteraction() const
+{
+	UInteractionData* Data = GetCurrentInteractionData();
+	return Data ? Data->IsHoldInteraction() : false;
+}
+
+float UInteractor::GetHoldProgress() const
+{
+	if (!bIsInteracting || !IsHoldInteraction() || !GetWorld())
+		return 0.0f;
+
+	UInteractionData* Data = GetCurrentInteractionData();
+	if (!Data || Data->HoldDuration <= 0.0f)
+		return 0.0f;
+
+	const float ElapsedTime = GetWorld()->GetTimeSeconds() - InteractionStartTime;
+	return FMath::Clamp(ElapsedTime / Data->HoldDuration, 0.0f, 1.0f);
+}

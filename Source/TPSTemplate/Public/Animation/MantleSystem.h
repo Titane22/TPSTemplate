@@ -193,39 +193,18 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
 	class ATPSTemplateCharacter* CharacterRef;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "References", meta = (AllowPrivateAccess = "true"))
-	class UTimelineComponent* MantleTimeline;
 	/// <summary>
 	/// Mantle System
 	/// </summary>
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FMantleComponentAndTransform MantleLedgeLS;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FMantleParams MantleParams;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FTransform MantleAnimatedStartOffset;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FTransform MantleActualStartOffset;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	FTransform MantleTarget;
-	/// <summary>
-	/// Anims
-	/// </summary>
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims", meta = (AllowPrivateAccess = "true"))
-	EMantleAnimType MantleAnimType;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset CustomMantle2M;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset CustomMantle1MRM;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anims", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset CustomMantle1MLM;
 	/// <summary>
 	/// Configs
 	/// </summary>
@@ -251,27 +230,16 @@ protected:
 	float Mantle_Z_Offset;
 
 	/// <summary>
-	/// Anim Defaults
+	/// Mantle Assets
 	/// </summary>
-	// Manny character mantle assets
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Manny_Mantle_2m;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle Assets", meta = (AllowPrivateAccess = "true"))
+	FMantleAsset Mantle_2m;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Manny_Mantle_1m_RH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle Assets", meta = (AllowPrivateAccess = "true"))
+	FMantleAsset Mantle_1m_RH;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Manny_Mantle_1m_LH;
-
-	// Quinn character mantle assets
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Quinn_Mantle_2m;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Quinn_Mantle_1m_RH;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Anim Defaults", meta = (AllowPrivateAccess = "true"))
-	FMantleAsset UE5_Quinn_Mantle_1m_LH;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle Assets", meta = (AllowPrivateAccess = "true"))
+	FMantleAsset Mantle_1m_LH;
 
 	// Timeline Curve for mantle interpolation
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Mantle|Timeline", meta = (AllowPrivateAccess = "true"))
@@ -308,19 +276,9 @@ private:
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void MantleStart(float MantleHeight, FMantleComponentAndTransform MantleLedgeWS, EMantleType MantleType);
 
-	// Timeline callback functions
-	UFUNCTION()
-	void MantleTimelineUpdate(float BlendIn);
-
-	UFUNCTION()
-	void MantleTimelineFinished();
-
 	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
 	void SetHandType(EMantleHandType ParamHandType);
 
-	UFUNCTION(BlueprintCallable, Category = "Mantle System", meta = (AllowPrivateAccess = "true"))
-	void SetAnimType(EMantleAnimType ParamAnimType);
-	
 	/// <summary>
 	/// Rotation System
 	/// </summary>

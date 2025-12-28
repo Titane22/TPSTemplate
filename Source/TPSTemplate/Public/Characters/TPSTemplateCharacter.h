@@ -3,13 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/EquipmentSystem.h"
 #include "GameFramework/Character.h"
 #include "Library/AnimationState.h"
 #include "Logging/LogMacros.h"
 #include "TPSTemplateCharacter.generated.h"
 
-// Forward declarations
-class UEquipmentSystem;
 class UHealthSystem;
 class UInteractor;
 
@@ -44,6 +43,54 @@ protected:
 	UInteractor* InteractorComponent;
 
 public:
+	
+	// Movement States
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsCrouch = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsSprint = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsSliding = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsDodging = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DodgeForward = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	float DodgeRight = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool Right = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool Forward = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool IsJump = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
+	bool bInteracting = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bCanFire = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bIsAttacking = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bCanSwitchWeapon = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool bFiring = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	bool IsAim = false;
+	
+public:
 	ATPSTemplateCharacter();
 
 	// Weapon Child Actor Components
@@ -59,7 +106,7 @@ public:
 
 	// State Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool Dead;
+	bool bIsDead = false;
 
 	// Death and Ragdoll
 	UFUNCTION()
@@ -84,6 +131,8 @@ public:
 
 	FORCEINLINE class UHealthSystem* GetHealthComponent() const { return HealthComponent; }
 
+	virtual EWeaponSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EWeaponSlot::None; }
+	
 protected:
 	virtual void BeginPlay();
 };

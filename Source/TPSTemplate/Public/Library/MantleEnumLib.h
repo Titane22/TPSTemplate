@@ -21,16 +21,6 @@ enum class EMantleHandType : uint8
 	RightHand		UMETA(DisplayName = "RightHand")
 };
 
-UENUM(BlueprintType)
-enum class EMantleAnimType : uint8
-{
-	UE5_Manny		UMETA(DisplayName = "UE5_Manny"),
-	UE5_Quinn		UMETA(DisplayName = "UE5_Quinn"),
-	UE4_Mannequin	UMETA(DisplayName = "UE4_Mannequin"),
-	UE4_ESRPG		UMETA(DisplayName = "UE4_ESRPG"),
-	Custom			UMETA(DisplayName = "Custom")
-};
-
 /**
  * 
  */

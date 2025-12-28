@@ -147,9 +147,6 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon", meta = (DisplayName = "Is Aim?"))
 	bool bIsAim;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Weapon", meta = (DisplayName = "Is Weapon Equip?"))
-	bool bIsWeaponEquip;
-
 	UPROPERTY(BlueprintReadOnly, Category = "Weapon", meta = (DisplayName = "Is Pistol Equip?"))
 	bool bIsPistolEquip;
 

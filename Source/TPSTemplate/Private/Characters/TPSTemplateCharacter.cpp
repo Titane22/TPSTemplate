@@ -7,7 +7,7 @@
 #include "Components/WeaponSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon/Interactor.h"
-#include "Weapon/IWeaponPickup.h"
+#include "Weapon/Interaction.h"
 #include "Weapon/MasterWeapon.h"
 
 DEFINE_LOG_CATEGORY(LogTemplateCharacter);
@@ -63,7 +63,15 @@ void ATPSTemplateCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	EquipmentSystem->CharacterRef = this;
+	if (EquipmentSystem)
+	{
+		EquipmentSystem->CharacterRef = this;
+		UE_LOG(LogTemplateCharacter, Log, TEXT("[%s] EquipmentSystem initialized successfully"), *GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemplateCharacter, Error, TEXT("[%s] EquipmentSystem is nullptr! Check Blueprint setup."), *GetName());
+	}
 
 	// Weapon initial setup
 	// NOTE: PrimaryChild and HandgunChild Child Actor Class should be set in Blueprint
@@ -104,19 +112,11 @@ void ATPSTemplateCharacter::BeginPlay()
 			}
 		}
 	}
-
-	if (InteractorComponent)
-	{
-		InteractorComponent->DetectionDistance = 350.0f;
-		InteractorComponent->InteractionMethod = EInteractionMethod::Camera;
-		InteractorComponent->HasInteraction = false;
-		InteractorComponent->InteractorActive = true;
-	}
 }
 
 void ATPSTemplateCharacter::Die()
 {
-	if (Dead)
+	if (bIsDead)
 		return;
 
 	FVector InteractionActorLocation = GetCapsuleComponent()->GetComponentLocation();
@@ -126,7 +126,7 @@ void ATPSTemplateCharacter::Die()
 	InteractionSpawnTransform.SetRotation(FQuat::Identity);
 	InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
 
-	Dead = true;
+	bIsDead = true;
 	InteractorComponent->DestroyComponent();
 
 	if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))

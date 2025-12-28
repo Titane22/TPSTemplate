@@ -7,6 +7,7 @@
 #include "Library/AnimationState.h"
 #include "MasterWeapon.generated.h"
 
+class AInteraction;
 class UWeaponData;
 class UWeaponSystem;
 class ATPSTemplateCharacter; 
@@ -46,7 +47,7 @@ public:
 
 	// Interaction Weapon Pickup
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	TSubclassOf<AIWeaponPickup> WeaponPickupClass;  
+	TSubclassOf<AInteraction> WeaponPickupClass;  
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	EAnimationState WeaponType;

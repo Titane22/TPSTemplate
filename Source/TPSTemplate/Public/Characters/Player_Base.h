@@ -120,7 +120,7 @@ protected:
 	void ShoulderCameraChange(float Value);
 
 	UFUNCTION()
-	void UpdateCrouchHeight();
+	void UpdateCrouchHeight(float Value);
 
 	UFUNCTION()
 	void PlayDodgeMontage(UAnimMontage* MontageToPlay);
@@ -137,43 +137,6 @@ protected:
 public:
 	APlayer_Base();
 
-	// Movement States
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsCrouch;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsSprint;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsSliding;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsDodging;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float DodgeForward;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	float DodgeRight;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool Right;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool Forward;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsJump;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool bInteracting;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool bIsCovering;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsCoverable;
-
 	// State Variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "State")
 	ELandState CurrentLandState;
@@ -189,31 +152,7 @@ public:
 	class AMasterWeapon* CurrentWeapon;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsAim;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class UUserWidget* UIAmmo;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsPistolEquip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsPrimaryEquip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsWeaponEquip;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool bCanFire = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsAttacking;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool bCanSwitchWeapon = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool bFiring;
 
 	// Camera variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
@@ -245,13 +184,6 @@ public:
 
 	class ULocomotionAnimInstance* LocomotionBP;
 
-	// Cover System Functions
-	void EnterCoverState();
-	void ExitCoverState();
-	void MoveToCover();
-	void UpdateCoverMovement();
-	void CancelCoverMove();
-
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
 	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
@@ -272,6 +204,17 @@ protected:
 	virtual void SwitchToHandgunWeapon() override;
 	virtual void ReadyToFire(class AMasterWeapon* MasterWeapon, class UWeaponData* CurrentWeaponDataAsset) override;
 	virtual void Interact() override;
+
+	//==============================================================================
+	// Interaction Event Handlers (Data-Driven)
+	//==============================================================================
+
+	/** 상호작용 실행 이벤트 핸들러 */
+	UFUNCTION()
+	void OnInteractionExecuted_Handler(class AInteraction* Interaction, const struct FInteractionContext& Context);
+
+	/** 무기 픽업 처리 (Helper) */
+	void HandleWeaponPickup(class AInteraction* Interaction, const struct FInteractionContext& Context);
 
 	UFUNCTION()
 	void ClearWeaponUI();

@@ -21,7 +21,10 @@
 #include "Widget/W_DivisionHUD.h"
 #include "Library/InteractiveType.h"
 #include "Weapon/Interactor.h"
-#include "Weapon/IWeaponPickup.h"
+#include "Weapon/Interaction.h"
+#include "Data/InteractionData.h"
+#include "Data/InteractionContext.h"
+#include "Kismet/GameplayStatics.h"
 
 APlayer_Base::APlayer_Base()
 	: Super()
@@ -62,8 +65,6 @@ void APlayer_Base::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InteractorComponent->CharacterRef = this;
-	
 	// Get Animation Instance
 	LocomotionBP = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
 
@@ -103,6 +104,21 @@ void APlayer_Base::BeginPlay()
 			UICrosshair->AddToViewport();
 		}
 	}
+
+	// ✅ Interaction 이벤트 바인딩 (Data-Driven)
+	// 레벨의 모든 Interaction에 이벤트 핸들러 연결
+	TArray<AActor*> FoundInteractions;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AInteraction::StaticClass(), FoundInteractions);
+
+	for (AActor* Actor : FoundInteractions)
+	{
+		if (AInteraction* Interaction = Cast<AInteraction>(Actor))
+		{
+			Interaction->OnInteractionExecuted.AddDynamic(this, &APlayer_Base::OnInteractionExecuted_Handler);
+			UE_LOG(LogTemp, Log, TEXT("Bound interaction event: %s"), *Interaction->GetName());
+		}
+	}
+
 	CanFire();
 }
 
@@ -113,8 +129,6 @@ void APlayer_Base::Tick(float DeltaTime)
 	CrouchTimeline.TickTimeline(DeltaTime);
 	AimTimeline.TickTimeline(DeltaTime);
 	ShoulderCameraTimeline.TickTimeline(DeltaTime);
-
-	UpdateCrouchHeight();
 }
 
 void APlayer_Base::OnLanded(const FHitResult& Hit)
@@ -218,7 +232,7 @@ void APlayer_Base::ShootFire(const FInputActionValue& Value)
 
 void APlayer_Base::Aim(const FInputActionValue& Value)
 {
-	if (!IsPrimaryEquip && !IsPistolEquip)
+	if (!EquipmentSystem || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::None)
 		return;
 
 	IsAim = Value.Get<bool>();
@@ -237,13 +251,16 @@ void APlayer_Base::Aim(const FInputActionValue& Value)
 
 void APlayer_Base::Reload()
 {
+	if (!EquipmentSystem)
+		return;
+
 	AMasterWeapon* MasterWeapon = nullptr;
 
-	if (IsPrimaryEquip)
+	if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
 	{
 		MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 	}
-	else if (IsPistolEquip)
+	else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
 	{
 		MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 	}
@@ -406,7 +423,7 @@ void APlayer_Base::UpdateAimView(float Value)
 		Value);
 }
 
-void APlayer_Base::UpdateCrouchHeight()
+void APlayer_Base::UpdateCrouchHeight(float Value)
 {
 	if (IsCrouch)
 	{
@@ -475,14 +492,15 @@ void APlayer_Base::ImpactOnLand()
 void APlayer_Base::StopFire()
 {
 	bFiring = false;
-	// bUseControllerRotationYaw remains true (always rotate with mouse in TPS)
 }
 
 void APlayer_Base::HandleFiring()
 {
-	UE_LOG(LogTemp, Log, TEXT("[HandleFiring] Called - bFiring: %s, bCanFire: %s"),
-		bFiring ? TEXT("true") : TEXT("false"),
-		bCanFire ? TEXT("true") : TEXT("false"));
+	if (!EquipmentSystem)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[HandleFiring] Blocked: EquipmentSystem is null"));
+		return;
+	}
 
 	if (!bFiring)
 	{
@@ -502,22 +520,16 @@ void APlayer_Base::HandleFiring()
 		return;
 	}
 
-	UE_LOG(LogTemp, Log, TEXT("[HandleFiring] All checks passed - IsPrimaryEquip: %s, IsPistolEquip: %s"),
-		IsPrimaryEquip ? TEXT("true") : TEXT("false"),
-		IsPistolEquip ? TEXT("true") : TEXT("false"));
-
-	if (IsPrimaryEquip)
+	if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
 	{
 		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 		UWeaponData* CurrentWeaponDataAsset = MasterWeapon->WeaponData;
-		UE_LOG(LogTemp, Log, TEXT("[HandleFiring] Firing Primary Weapon"));
 		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
 	}
-	else if (IsPistolEquip)
+	else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
 	{
 		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 		UWeaponData* CurrentWeaponDataAsset = MasterWeapon->WeaponData;
-		UE_LOG(LogTemp, Log, TEXT("[HandleFiring] Firing Handgun Weapon"));
 		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
 	}
 	else
@@ -531,14 +543,6 @@ bool APlayer_Base::CanFire()
 	bool bCanJumpNow = CanJump();  // 한 번만 호출하고 저장
 	bool bCanShoot = !IsSprint && !IsDodging && bCanJumpNow && bCanSwitchWeapon;
 	bool bResult = bCanShoot || IsCrouch;
-
-	UE_LOG(LogTemp, Log, TEXT("[CanFire] IsSprint: %s, IsDodging: %s, CanJump: %s, bCanSwitchWeapon: %s, IsCrouch: %s, Result: %s"),
-		IsSprint ? TEXT("true") : TEXT("false"),
-		IsDodging ? TEXT("true") : TEXT("false"),
-		bCanJumpNow ? TEXT("true") : TEXT("false"),
-		bCanSwitchWeapon ? TEXT("true") : TEXT("false"),
-		IsCrouch ? TEXT("true") : TEXT("false"),
-		bResult ? TEXT("true") : TEXT("false"));
 
 	return bResult;
 }
@@ -567,8 +571,21 @@ void APlayer_Base::OnMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 
 UUserWidget* APlayer_Base::AddWeaponUI(UWeaponData* WeaponData)
 {
+	UE_LOG(LogTemp, Log, TEXT("[AddWeaponUI] Called - WeaponData: %s, EquipmentSystem: %s"),
+		WeaponData ? *WeaponData->GetName() : TEXT("NULL"),
+		EquipmentSystem ? TEXT("Valid") : TEXT("NULL"));
+
 	if (!IsPlayerControlled())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[AddWeaponUI] Not player controlled, returning nullptr"));
 		return nullptr;
+	}
+
+	if (!EquipmentSystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[AddWeaponUI] EquipmentSystem is nullptr!"));
+		return nullptr;
+	}
 
 	ClearWeaponUI();
 
@@ -580,20 +597,23 @@ UUserWidget* APlayer_Base::AddWeaponUI(UWeaponData* WeaponData)
 			CurrentWeaponUI = Cast<UW_DynamicWeaponHUD>(WeaponUI);
 			if (!CurrentWeaponUI)
 			{
+				UE_LOG(LogTemp, Error, TEXT("[AddWeaponUI] Failed to cast to UW_DynamicWeaponHUD"));
 				return nullptr;
 			}
 
-			if (IsPrimaryEquip)
+			if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
 			{
 				CurrentWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 			}
-			else
+			else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
 			{
 				CurrentWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 			}
 
 			if (!CurrentWeapon || !CurrentWeapon->WeaponSystem)
 			{
+				ClearWeaponUI();
+				CurrentWeaponUI = nullptr;
 				return nullptr;
 			}
 
@@ -618,7 +638,12 @@ void APlayer_Base::SwitchWeapons()
 
 void APlayer_Base::SwitchToPrimaryWeapon()
 {
-	if (!CanSwitchWeapon() || IsPrimaryEquip)
+	UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] Called - EquipmentSystem: %s, CanSwitchWeapon: %s, CurrentSlot: %d"),
+		EquipmentSystem ? TEXT("Valid") : TEXT("NULL"),
+		CanSwitchWeapon() ? TEXT("true") : TEXT("false"),
+		EquipmentSystem ? (int32)EquipmentSystem->CurrentEquippedSlot : -1);
+
+	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
 		return;
 
 	if (!LocomotionBP)
@@ -627,7 +652,6 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 	}
 
 	bCanSwitchWeapon = false;
-	IsPistolEquip = false;
 
 	// 1. Unequip Pistol
 	EquipmentSystem->SetWeaponState(
@@ -638,7 +662,6 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 		FName("PistolHost_Socket"),
 		EWeaponSlot::Handgun
 	);
-	IsPrimaryEquip = true;
 
 	// 2. Equip Rifle
 	EquipmentSystem->SetWeaponState(
@@ -712,7 +735,12 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 void APlayer_Base::SwitchToHandgunWeapon()
 {
-	if (!CanSwitchWeapon() || IsPistolEquip)
+	UE_LOG(LogTemp, Log, TEXT("[SwitchToHandgunWeapon] Called - EquipmentSystem: %s, CanSwitchWeapon: %s, CurrentSlot: %d"),
+		EquipmentSystem ? TEXT("Valid") : TEXT("NULL"),
+		CanSwitchWeapon() ? TEXT("true") : TEXT("false"),
+		EquipmentSystem ? (int32)EquipmentSystem->CurrentEquippedSlot : -1);
+
+	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
 		return;
 
 	if (!LocomotionBP)
@@ -721,7 +749,6 @@ void APlayer_Base::SwitchToHandgunWeapon()
 	}
 
 	bCanSwitchWeapon = false;
-	IsPrimaryEquip = false;
 
 	// 1. Unequip Rifle
 	EquipmentSystem->SetWeaponState(
@@ -732,7 +759,6 @@ void APlayer_Base::SwitchToHandgunWeapon()
 		FName("RifleHost_Socket"),
 		EWeaponSlot::Primary
 	);
-	IsPistolEquip = true;
 
 	// 2. Equip Pistol
 	EquipmentSystem->SetWeaponState(
@@ -833,146 +859,22 @@ void APlayer_Base::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData* Current
 
 void APlayer_Base::Interact()
 {
-	if (!InteractorComponent->HasInteraction)
-		return;
-
-	switch (InteractorComponent->GetInteractionType())
+	// ✅ 새로운 Data-Driven 방식: Interactor가 모든 것을 처리!
+	if (!InteractorComponent)
 	{
-	case EInteractiveType::Default:
-		InteractorComponent->StartInteraction(GetController());
-		break;
-
-	case EInteractiveType::Pickup:
-		break;
-
-	case EInteractiveType::WeaponPickup:
-		AIWeaponPickup* PickupToWeapon = Cast<AIWeaponPickup>(InteractorComponent->InteractionActor);
-
-		if (PickupToWeapon)
-		{
-			AMasterWeapon* MasterWeapon = nullptr;
-			FVector InteractionActorLocation = InteractorComponent->InteractionActor->GetActorLocation();
-
-			FTransform InteractionSpawnTransform;
-			InteractionSpawnTransform.SetLocation(FVector(InteractionActorLocation.X, InteractionActorLocation.Y, InteractionActorLocation.Z + 20.0f));
-			InteractionSpawnTransform.SetRotation(FQuat::Identity);
-			InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
-
-			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (!AnimInstance)
-			{
-				return;
-			}
-
-			switch (PickupToWeapon->WeaponData->WeaponType)
-			{
-			case EWeaponType::Pistol:
-				MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
-				if (!MasterWeapon)
-				{
-					return;
-				}
-
-				GetWorld()->SpawnActor<AActor>(
-					MasterWeapon->WeaponPickupClass,
-					InteractionSpawnTransform
-				);
-
-				if (IsPrimaryEquip)
-				{
-					IsPrimaryEquip = false;
-					EquipmentSystem->SetWeaponState(
-						EquipmentSystem->PrimaryWeaponClass,
-						EAnimationState::RifleShotgun,
-						EWeaponState::Unequip,
-						FName(""),
-						FName("RifleHost_Socket"),
-						EWeaponSlot::Primary
-					);
-				}
-
-				HandgunChild->SetChildActorClass(PickupToWeapon->WeaponData->WeaponClass->StaticClass());
-				IsPistolEquip = true;
-
-				EquipmentSystem->SetWeaponState(
-					EquipmentSystem->HandgunWeaponClass,
-					EAnimationState::Pistol,
-					EWeaponState::Equip,
-					FName("PistolHost_Socket"),
-					FName(""),
-					EWeaponSlot::Handgun
-				);
-
-				if (AnimInstance)
-				{
-					UAnimMontage* PistolEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-						TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2")));
-
-					AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
-
-					FOnMontageEnded CompleteDelegate;
-					CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
-					AnimInstance->Montage_SetEndDelegate(CompleteDelegate, PistolEquipMontage);
-
-					InteractorComponent->StartInteraction(GetController());
-				}
-				break;
-
-			case EWeaponType::RifleAndShotgun:
-				MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
-				if (!MasterWeapon)
-				{
-					return;
-				}
-
-				GetWorld()->SpawnActor<AActor>(
-					MasterWeapon->WeaponPickupClass,
-					InteractionSpawnTransform
-				);
-
-				if (IsPistolEquip)
-				{
-					IsPistolEquip = false;
-					EquipmentSystem->SetWeaponState(
-						EquipmentSystem->HandgunWeaponClass,
-						EAnimationState::Pistol,
-						EWeaponState::Equip,
-						FName(""),
-						FName("Pistol_Socket"),
-						EWeaponSlot::Handgun
-					);
-				}
-
-				HandgunChild->SetChildActorClass(PickupToWeapon->WeaponData->WeaponClass->StaticClass());
-				IsPrimaryEquip = true;
-
-				EquipmentSystem->SetWeaponState(
-					EquipmentSystem->PrimaryWeaponClass,
-					EAnimationState::RifleShotgun,
-					EWeaponState::Unequip,
-					FName("RifleHost_Socket"),
-					FName(""),
-					EWeaponSlot::Primary
-				);
-
-				if (AnimInstance)
-				{
-					UAnimMontage* RifleEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-						TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1")));
-
-					AnimInstance->Montage_Play(RifleEquipMontage, 1.0f);
-
-					FOnMontageEnded CompleteDelegate;
-					CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
-					AnimInstance->Montage_SetEndDelegate(CompleteDelegate, RifleEquipMontage);
-
-					InteractorComponent->StartInteraction(GetController());
-				}
-				break;
-			}
-		}
-		break;
+		UE_LOG(LogTemp, Warning, TEXT("InteractorComponent is null!"));
+		return;
 	}
+
+	// Interactor에게 상호작용 실행 요청
+	// - TriggerInteraction()이 자동으로:
+	//   1. 현재 Interaction 유효성 체크
+	//   2. Hold 타입이면 시작, 아니면 즉시 실행
+	//   3. OnInteractionExecuted 이벤트 브로드캐스트
+	InteractorComponent->TriggerInteraction();
+
+	// 이제 모든 로직은 이벤트 핸들러에서 처리됨!
+	// (BeginPlay에서 바인딩한 OnInteractionExecuted_Handler 참조)
 }
 
 void APlayer_Base::ClearWeaponUI()
@@ -981,4 +883,223 @@ void APlayer_Base::ClearWeaponUI()
 		return;
 
 	CurrentWeaponUI->RemoveFromParent();
+}
+
+//==============================================================================
+// Interaction Event Handlers (Data-Driven)
+//==============================================================================
+
+void APlayer_Base::OnInteractionExecuted_Handler(AInteraction* Interaction, const FInteractionContext& Context)
+{
+	if (!Interaction || !Context.InteractionData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("OnInteractionExecuted_Handler: Invalid parameters"));
+		return;
+	}
+
+	UE_LOG(LogTemp, Log, TEXT("Interaction executed: %s (Type: %d)"),
+		*Interaction->GetName(),
+		static_cast<int32>(Context.InteractionData->InteractionType));
+
+	// 타입별 처리
+	switch (Context.InteractionData->InteractionType)
+	{
+	case EInteractiveType::WeaponPickup:
+		UE_LOG(LogTemp, Warning, TEXT(">>> WeaponPickup case triggered!"));
+		HandleWeaponPickup(Interaction, Context);
+		break;
+
+	case EInteractiveType::Pickup:
+		UE_LOG(LogTemp, Warning, TEXT(">>> General Pickup case triggered!"));
+		break;
+
+	case EInteractiveType::Default:
+	default:
+		UE_LOG(LogTemp, Warning, TEXT(">>> Default case triggered! InteractionType=%d"),
+			static_cast<int32>(Context.InteractionData->InteractionType));
+		break;
+	}
+}
+
+void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteractionContext& Context)
+{
+	if (!Interaction || !Context.InteractionData || !EquipmentSystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Invalid parameters"));
+		return;
+	}
+
+	// PayloadData에서 무기 정보 추출
+	const TMap<FString, FString>& PayloadData = Context.InteractionData->PayloadData;
+
+	FString WeaponTypeStr = PayloadData.FindRef("WeaponType");
+	FString WeaponClassPath = PayloadData.FindRef("WeaponClass");
+
+	if (WeaponTypeStr.IsEmpty() || WeaponClassPath.IsEmpty())
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Missing WeaponType or WeaponClass in PayloadData"));
+		return;
+	}
+
+	// WeaponType 파싱
+	EWeaponSlot TargetSlot = EWeaponSlot::Primary;
+	FString MontagePath;
+
+	if (WeaponTypeStr.Equals("Pistol"))
+	{
+		TargetSlot = EWeaponSlot::Handgun;
+		MontagePath = TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2");
+	}
+	else if (WeaponTypeStr.Equals("RifleAndShotgun"))
+	{
+		TargetSlot = EWeaponSlot::Primary;
+		MontagePath = TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1");
+	}
+
+	// 무기 클래스 로드
+	TSubclassOf<AMasterWeapon> NewWeaponClass = LoadClass<AMasterWeapon>(nullptr, *WeaponClassPath);
+	if (!NewWeaponClass)
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Failed to load weapon class: %s"), *WeaponClassPath);
+		return;
+	}
+
+	// 기존 무기의 탄약 상태 저장 (드롭용)
+	FWeaponAmmoState DroppedAmmoState;
+	bool bHasSavedAmmo = false;
+
+	UChildActorComponent* CurrentTargetChild = (TargetSlot == EWeaponSlot::Primary) ? PrimaryChild : HandgunChild;
+	if (CurrentTargetChild)
+	{
+		if (AMasterWeapon* CurWeapon = Cast<AMasterWeapon>(CurrentTargetChild->GetChildActor()))
+		{
+			if (CurWeapon->WeaponSystem)
+			{
+				// 현재 무기의 탄약 정보 저장
+				DroppedAmmoState.CurrentAmmo = CurWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo;
+				DroppedAmmoState.MaxAmmo = CurWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo;
+				DroppedAmmoState.ClipAmmo = CurWeapon->WeaponSystem->Weapon_Details.Weapon_Data.ClipAmmo;
+				DroppedAmmoState.DifferentAmmo = CurWeapon->WeaponSystem->Weapon_Details.Weapon_Data.DifferentAmmo;
+				DroppedAmmoState.AmmoCount = CurWeapon->WeaponSystem->Weapon_Details.Weapon_Data.Ammo_Count;
+				bHasSavedAmmo = true;
+
+				UE_LOG(LogTemp, Log, TEXT("HandleWeaponPickup: Saved ammo state - CurrentAmmo: %d, MaxAmmo: %d"),
+					DroppedAmmoState.CurrentAmmo, DroppedAmmoState.MaxAmmo);
+			}
+		}
+	}
+
+	// ✅ EquipmentSystem을 통해 무기 픽업 및 장착
+	TSubclassOf<AMasterWeapon> DroppedWeaponClass;
+	if (!EquipmentSystem->PickupAndEquipWeapon(NewWeaponClass, TargetSlot, DroppedWeaponClass))
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Failed to pickup weapon"));
+		return;
+	}
+
+	// 무기 장착 플래그 설정 (발사/조준 활성화)
+	if (TargetSlot == EWeaponSlot::Primary)
+	{
+		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::Primary;
+	}
+	else if (TargetSlot == EWeaponSlot::Handgun)
+	{
+		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::Handgun;
+	}
+
+	// 기존 무기를 바닥에 드롭
+	if (DroppedWeaponClass)
+	{
+		FVector DropLocation = Interaction->GetActorLocation() + FVector(0, 0, 20);
+		FTransform DropTransform(FQuat::Identity, DropLocation);
+
+		// CDO(Class Default Object)에서 WeaponPickupClass 가져오기
+		AMasterWeapon* WeaponCDO = Cast<AMasterWeapon>(DroppedWeaponClass->GetDefaultObject());
+		if (WeaponCDO && WeaponCDO->WeaponPickupClass)
+		{
+			// WeaponPickupClass 스폰
+			AInteraction* DroppedPickup = GetWorld()->SpawnActor<AInteraction>(WeaponCDO->WeaponPickupClass, DropTransform);
+			if (DroppedPickup)
+			{
+				// ✅ Runtime 생성된 Interaction에 이벤트 바인딩
+				DroppedPickup->OnInteractionExecuted.AddDynamic(this, &APlayer_Base::OnInteractionExecuted_Handler);
+
+				// ✅ 저장된 탄약 상태 적용
+				if (bHasSavedAmmo)
+				{
+					DroppedPickup->SavedAmmoState = DroppedAmmoState;
+					DroppedPickup->bHasCustomState = true;
+
+					UE_LOG(LogTemp, Log, TEXT("Dropped weapon pickup with saved ammo: CurrentAmmo=%d, MaxAmmo=%d"),
+						DroppedAmmoState.CurrentAmmo, DroppedAmmoState.MaxAmmo);
+				}
+
+				UE_LOG(LogTemp, Log, TEXT("Dropped weapon pickup spawned and event bound: %s"), *DroppedPickup->GetName());
+			}
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("Not set DroppedWeaponClass"));
+		}
+	}
+
+	// UI 업데이트 및 탄약 상태 복원 (ChildActor 초기화 대기)
+	FTimerHandle TimerHandle;
+	GetWorld()->GetTimerManager().SetTimer(
+		TimerHandle,
+		[this, TargetSlot, Interaction]()
+		{
+			UChildActorComponent* TargetChild = (TargetSlot == EWeaponSlot::Primary) ? PrimaryChild : HandgunChild;
+			if (TargetChild)
+			{
+				if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(TargetChild->GetChildActor()))
+				{
+					// ✅ 저장된 탄약 상태 복원
+					if (Interaction && Interaction->bHasCustomState && Weapon->WeaponSystem)
+					{
+						Weapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo = Interaction->SavedAmmoState.CurrentAmmo;
+						Weapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo = Interaction->SavedAmmoState.MaxAmmo;
+						Weapon->WeaponSystem->Weapon_Details.Weapon_Data.ClipAmmo = Interaction->SavedAmmoState.ClipAmmo;
+						Weapon->WeaponSystem->Weapon_Details.Weapon_Data.DifferentAmmo = Interaction->SavedAmmoState.DifferentAmmo;
+						Weapon->WeaponSystem->Weapon_Details.Weapon_Data.Ammo_Count = Interaction->SavedAmmoState.AmmoCount;
+
+						UE_LOG(LogTemp, Log, TEXT("HandleWeaponPickup: Restored ammo state - CurrentAmmo: %d, MaxAmmo: %d"),
+							Interaction->SavedAmmoState.CurrentAmmo, Interaction->SavedAmmoState.MaxAmmo);
+					}
+
+					if (Weapon->WeaponData)
+					{
+						AddWeaponUI(Weapon->WeaponData);
+						if (LocomotionBP)
+						{
+							LocomotionBP->LeftHandIKOffset = Weapon->WeaponData->LeftHandIKOffset;
+						}
+						UE_LOG(LogTemp, Log, TEXT("HandleWeaponPickup: UI updated for %s"), *Weapon->GetName());
+					}
+				}
+			}
+		},
+		0.1f,
+		false
+	);
+
+	// 장착 애니메이션 재생
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && !MontagePath.IsEmpty())
+	{
+		UAnimMontage* EquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr, *MontagePath));
+		if (EquipMontage)
+		{
+			AnimInstance->Montage_Play(EquipMontage, 1.0f);
+
+			FOnMontageEnded CompleteDelegate;
+			CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(CompleteDelegate, EquipMontage);
+		}
+	}
+
+	// Interaction Actor 제거
+	Interaction->Destroy();
+
+	UE_LOG(LogTemp, Log, TEXT("HandleWeaponPickup: Equipped %s successfully"), *WeaponClassPath);
 }

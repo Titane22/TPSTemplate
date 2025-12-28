@@ -12,7 +12,31 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="9a4d6da4-0d6d-453b-99d1-46528282e171" name="변경" comment="" />
+    <list default="true" id="9a4d6da4-0d6d-453b-99d1-46528282e171" name="변경" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.TPSTemplate/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.TPSTemplate/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/LocomotionAnimInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/LocomotionAnimInstance.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/MantleSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/MantleSystem.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/Player_Base.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/Player_Base.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/TPSTemplateCharacter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/TPSTemplateCharacter.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Components/EquipmentSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Components/EquipmentSystem.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interaction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interaction.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/InteractionComponent.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/InteractionComponent.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interactor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interactor.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/MasterWeapon.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/MasterWeapon.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/LocomotionAnimInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/LocomotionAnimInstance.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/MantleSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/MantleSystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/Player_Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/Player_Base.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/TPSTemplateCharacter.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/TPSTemplateCharacter.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/EquipmentSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/EquipmentSystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/HealthSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/HealthSystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/WeaponSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/WeaponSystem.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Library/MantleEnumLib.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Library/MantleEnumLib.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interaction.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interaction.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/InteractionComponent.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/InteractionComponent.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interactor.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interactor.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/MasterWeapon.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/MasterWeapon.h" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -22,39 +46,59 @@
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Developer/FunctionalTesting/Private/AutomationBlueprintFunctionLibrary.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Developer/MeshMergeUtilities/Private/MeshMergeHelpers.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Editor/BlueprintGraph/Private/K2Node_GetClassDefaults.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Editor/MovieSceneTools/Private/TrackEditors/AudioTrackEditor.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Editor/SkeletalMeshEditor/Private/SkeletalMeshEditorSubsystem.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/AutomationUtils/LogUtils.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/AutomationUtils/P4Environment.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/AutomationUtils/ProjectUtils.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/BuildGraph/BgScriptNode.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/IOS/IOSPlatform.Automation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/LowLevelTests/RunLowLevelTests.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/ArchiveCommand.Automation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/Localisation.Automation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/MultiClientLauncher.Automation.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/RebuildLightMapsCommand.Automation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/RunProjectCommand.Automation.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/SyncDDC.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/SyncPerforceServers.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Scripts/UploadDDCToAWS.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/AutomationTool/Turnkey/Turnkey.Automation.cs" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Programs/UnrealBuildTool/System/LinkEnvironment.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Core/Public/Delegates/DelegateSignatureImpl.inl" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Engine/Public/SkeletalRenderPublic.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Data/InteractionData.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Enemy/TPSTemplate_Enemy_Base.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Objects/ItemSpawner.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/InteractionData.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Objects/ItemSpawner.h" root0="FORCE_HIGHLIGHTING" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "associatedIndex": 1
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 1
+}</component>
   <component name="ProjectId" id="37PBIQTIAIMEjIJHUCcYuRTvvON" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "main",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RunManager" selected="C/C++ 프로젝트.TPSTemplate">
     <configuration name="TPSTemplate" type="CppProject" factoryName="C++ Project">
       <configuration_1 setup="1">
@@ -147,7 +191,10 @@
       </method>
     </configuration>
     <configuration default="true" type="docker-deploy" factoryName="dockerfile" temporary="true">
-      <deployment type="dockerfile" />
+      <deployment type="dockerfile">
+        <settings />
+      </deployment>
+      <EXTENSION ID="com.jetbrains.rider.docker.debug" isFastModeEnabled="true" isSslEnabled="false" />
       <method v="2" />
     </configuration>
     <configuration name="EpicGames.Perforce.Fixture/Dockerfile" type="docker-deploy" factoryName="dockerfile" server-name="Docker">
@@ -169,7 +216,9 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1766794746378</updated>
-      <workItem from="1766794748307" duration="41503000" />
+      <workItem from="1766794748307" duration="44398000" />
+      <workItem from="1766885444944" duration="4377000" />
+      <workItem from="1766898688801" duration="29858000" />
     </task>
     <servers />
   </component>

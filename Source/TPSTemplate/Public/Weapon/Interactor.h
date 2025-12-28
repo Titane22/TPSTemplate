@@ -5,56 +5,167 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Library/InteractiveType.h"
+#include "Data/InteractionContext.h"
 #include "Interactor.generated.h"
 
 class APlayer_Base;
-class ATPSTemplateCharacter;
 class AInteraction;
-class UInteractionComponent;
+class UInteractionData;
 
+/**
+ * Interaction Detection Method
+ */
 UENUM(BlueprintType)
 enum class EInteractionMethod : uint8
 {
-	Camera          UMETA(DisplayName = "Camera"),
-	BodyForward		UMETA(DisplayName = "BodyForward")
+	Camera          UMETA(DisplayName = "Camera", Tooltip = "카메라 시점에서 전방으로 감지"),
+	BodyForward		UMETA(DisplayName = "Body Forward", Tooltip = "캐릭터 본체 전방으로 감지")
 };
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+/**
+ * UInteractor - Data-Driven 상호작용 감지 컴포넌트
+ * 안전성과 확장성을 고려하여 재설계됨
+ */
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class TPSTEMPLATE_API UInteractor : public UActorComponent
 {
 	GENERATED_BODY()
 
-public:	
-	// Sets default values for this component's properties
+public:
 	UInteractor();
-	// Called when the game starts
-	virtual void BeginPlay() override;
 
+protected:
+	//==============================================================================
+	// Configuration
+	//==============================================================================
+	
+	/** 상호작용 감지 거리 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Detection", meta = (ClampMin = "0.0"))
 	float DetectionDistance = 350.0f;
 
-	bool HasInteraction;
+	/** 감지 구체 반경 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Detection", meta = (ClampMin = "0.0"))
+	float SphereTraceRadius = 10.0f;
 
-	bool InteractorActive = true;
-
+	/** 감지 방법 (Camera / BodyForward) */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Detection")
 	EInteractionMethod InteractionMethod = EInteractionMethod::Camera;
 
-	AActor* InteractionActor;
+	/** 감지 활성화 여부 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Detection")
+	bool bInteractorActive = true;
 
-	AInteraction* InteractionBP;
+	/** 디버그 트레이스 표시 여부 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Debug")
+	bool bShowDebugTrace = false;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Character")
-	APlayer_Base* CharacterRef;
+	/** 감지 업데이트 주기 (초) - 0이면 매 프레임 */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Interaction|Performance", meta = (ClampMin = "0.0"))
+	float DetectionUpdateInterval = 0.0f;
 
-	void StopLastIntteraction();
+	//==============================================================================
+	// State
+	//==============================================================================
 
-	void StartInteraction(AController* Interactor);
+	/** 현재 감지된 상호작용 대상 */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|State")
+	TWeakObjectPtr<AInteraction> CurrentInteraction;
 
-	void Reset();
-	
-	EInteractiveType GetInteractionType();
-public:	
-	// Called every frame
+	/** 상호작용 진행 중 여부 (Hold 타입용) */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|State")
+	bool bIsInteracting = false;
+
+	/** Hold 타입 상호작용 시작 시간 */
+	UPROPERTY(BlueprintReadOnly, Category = "Interaction|State")
+	float InteractionStartTime = 0.0f;
+
+	/** 마지막 감지 업데이트 시간 */
+	float LastDetectionTime = 0.0f;
+
+	//==============================================================================
+	// References
+	//==============================================================================
+
+	/** 캐릭터 참조 (자동 설정) */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Interaction|References")
+	APlayer_Base* CharacterRef = nullptr;
+
+	//==============================================================================
+	// Lifecycle
+	//==============================================================================
+
+	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-		
+private:
+	//==============================================================================
+	// Detection
+	//==============================================================================
+	
+	/** 상호작용 감지 로직 */
+	void DetectInteractions();
+
+	/** 트레이스 시작/끝 위치 계산 */
+	bool GetTraceStartEnd(FVector& OutStart, FVector& OutEnd) const;
+
+	/** 현재 상호작용 하이라이트 중지 */
+	void StopCurrentInteraction();
+
+	/** 새로운 상호작용 감지 시작 */
+	void StartNewInteraction(AInteraction* NewInteraction);
+
+public:
+	//==============================================================================
+	// Interaction Execution
+	//==============================================================================
+
+	/**
+	 * 상호작용 시작
+	 * Hold 타입이면 OnInteractionStarted 호출, 아니면 즉시 ExecuteInteraction
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void TriggerInteraction();
+
+	/**
+	 * Hold 타입 상호작용 취소
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void CancelInteraction();
+
+	/**
+	 * 상호작용 실행 (내부용)
+	 */
+	void ExecuteCurrentInteraction();
+
+	//==============================================================================
+	// Getters
+	//==============================================================================
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool HasActiveInteraction() const { return CurrentInteraction.IsValid(); }
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	AInteraction* GetCurrentInteraction() const { return CurrentInteraction.Get(); }
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	UInteractionData* GetCurrentInteractionData() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	EInteractiveType GetCurrentInteractionType() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	bool IsHoldInteraction() const;
+
+	UFUNCTION(BlueprintPure, Category = "Interaction")
+	float GetHoldProgress() const;
+
+	//==============================================================================
+	// Setters
+	//==============================================================================
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetInteractorActive(bool bActive) { bInteractorActive = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = "Interaction")
+	void SetDetectionDistance(float NewDistance) { DetectionDistance = FMath::Max(0.0f, NewDistance); }
 };

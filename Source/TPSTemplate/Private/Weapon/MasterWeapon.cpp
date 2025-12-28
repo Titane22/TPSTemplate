@@ -44,10 +44,10 @@ void AMasterWeapon::BeginPlay()
 {
     Super::BeginPlay();
 
-    ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(GetAttachParentActor());
-    if (!Player)
+    ATPSTemplateCharacter* OwnerRef = Cast<ATPSTemplateCharacter>(GetAttachParentActor());
+    if (!OwnerRef)
         return;
-    WeaponSystem->CharacterRef = Player;
+    WeaponSystem->CharacterRef = OwnerRef;
 
     // WeaponData로부터 탄약 정보 로드
     if (WeaponData)
@@ -93,9 +93,14 @@ void AMasterWeapon::FireBullet(FHitResult Hit, bool bReturnHit)
         QueryParams.AddIgnoredActor(this);
         
         // Create array of actors to ignore
-        if (!WeaponSystem || !WeaponSystem->CharacterRef)
+        if (!WeaponSystem)
         {
-            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("WeaponSystem or WeaponSystem->CharacterRef is NULL"));
+            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("WeaponSystem is NULL"));
+            return;
+        }
+        else if (!WeaponSystem->CharacterRef)
+        {
+            GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, TEXT("WeaponSystem->CharacterRef is NULL"));
             return;
         }
         QueryParams.AddIgnoredActor(Cast<AActor>(WeaponSystem->CharacterRef));
@@ -307,8 +312,8 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         //    nullptr                    // Damage Type Class
         //);
 
-        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Player->Dead: %d"), Player->Dead));
-        if (!Player->Dead)
+        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Player->Dead: %d"), Player->bIsDead));
+        if (!Player->bIsDead)
         {
             //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
             // Apply Damage

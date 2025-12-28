@@ -90,6 +90,10 @@ void UEquipmentSystem::EquipWeapon(FName SocketName, EWeaponSlot WeaponSlot)
 	);
 
 	CharacterRef->CurrentAnimationState = AnimationState;
+
+	// CurrentEquippedSlot 업데이트
+	CurrentEquippedSlot = WeaponSlot;
+	UE_LOG(LogTemp, Log, TEXT("[EquipWeapon] CurrentEquippedSlot updated to: %d"), (int32)WeaponSlot);
 }
 
 void UEquipmentSystem::SwitchToWeapon(EWeaponSlot TargetSlot)
@@ -216,87 +220,93 @@ void UEquipmentSystem::UnequipWeapon(FName SocketName, EWeaponSlot WeaponSlot)
 
 	CharacterRef->CurrentAnimationState = AnimationState;
 }
-//
-// void UEquipmentSystem::SwitchToWeapon(EWeaponSlot TargetSlot)
-// {
-// 	if (!CharacterRef)
-// 	{
-// 		UE_LOG(LogTemp, Error, TEXT("EquipmentSystem::SwitchToWeapon - CharacterRef is null"));
-// 		return;
-// 	}
-//
-// 	// 이미 같은 무기를 들고 있으면 무시
-// 	if (CurrentEquippedSlot == TargetSlot)
-// 	{
-// 		UE_LOG(LogTemp, Warning, TEXT("Already equipped %d"), (int32)TargetSlot);
-// 		return;
-// 	}
-//
-// 	// 1. 현재 장착된 무기를 등에 보관
-// 	if (CurrentEquippedSlot != EWeaponSlot::None)
-// 	{
-// 		UChildActorComponent* CurrentChild = (CurrentEquippedSlot == EWeaponSlot::Primary)
-// 			? CharacterRef->PrimaryChild
-// 			: CharacterRef->HandgunChild;
-//
-// 		FName HolsterSocket = (CurrentEquippedSlot == EWeaponSlot::Primary)
-// 			? FName("RifleHost_Socket")
-// 			: FName("PistolHost_Socket");
-//
-// 		if (CurrentChild && CurrentChild->GetChildActor())
-// 		{
-// 			CurrentChild->AttachToComponent(
-// 				CharacterRef->GetMesh(),
-// 				FAttachmentTransformRules(
-// 					EAttachmentRule::SnapToTarget,
-// 					EAttachmentRule::SnapToTarget,
-// 					EAttachmentRule::SnapToTarget,
-// 					true
-// 				),
-// 				HolsterSocket
-// 			);
-// 		}
-// 	}
-//
-// 	// 2. 새 무기를 손에 장착
-// 	if (TargetSlot != EWeaponSlot::None)
-// 	{
-// 		UChildActorComponent* TargetChild = (TargetSlot == EWeaponSlot::Primary)
-// 			? CharacterRef->PrimaryChild
-// 			: CharacterRef->HandgunChild;
-//
-// 		FName HandSocket = (TargetSlot == EWeaponSlot::Primary)
-// 			? FName("Rifle_Socket")
-// 			: FName("Pistol_Socket");
-//
-// 		EAnimationState NewAnimState = (TargetSlot == EWeaponSlot::Primary)
-// 			? EAnimationState::RifleShotgun
-// 			: EAnimationState::Pistol;
-//
-// 		if (TargetChild && TargetChild->GetChildActor())
-// 		{
-// 			TargetChild->AttachToComponent(
-// 				CharacterRef->GetMesh(),
-// 				FAttachmentTransformRules(
-// 					EAttachmentRule::SnapToTarget,
-// 					EAttachmentRule::SnapToTarget,
-// 					EAttachmentRule::SnapToTarget,
-// 					true
-// 				),
-// 				HandSocket
-// 			);
-//
-// 			CharacterRef->CurrentAnimationState = NewAnimState;
-// 		}
-// 	}
-// 	else
-// 	{
-// 		// 맨손 상태
-// 		CharacterRef->CurrentAnimationState = EAnimationState::Unarmed;
-// 	}
-//
-// 	// 3. 상태 업데이트
-// 	CurrentEquippedSlot = TargetSlot;
-//
-// 	UE_LOG(LogTemp, Log, TEXT("Switched to weapon slot: %d"), (int32)TargetSlot);
-// }
+
+bool UEquipmentSystem::PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EWeaponSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass)
+{
+	if (!CharacterRef || !NewWeaponClass || TargetSlot == EWeaponSlot::None)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PickupAndEquipWeapon: Invalid parameters"));
+		return false;
+	}
+
+	// 대상 슬롯의 ChildActorComponent 가져오기
+	UChildActorComponent* TargetChild = (TargetSlot == EWeaponSlot::Primary)
+		? CharacterRef->PrimaryChild
+		: CharacterRef->HandgunChild;
+
+	if (!TargetChild)
+	{
+		UE_LOG(LogTemp, Error, TEXT("PickupAndEquipWeapon: TargetChild is null"));
+		return false;
+	}
+
+	// 기존 무기 클래스 저장 (드롭용)
+	AMasterWeapon* CurrentWeapon = Cast<AMasterWeapon>(TargetChild->GetChildActor());
+	if (CurrentWeapon)
+	{
+		OutDroppedWeaponClass = CurrentWeapon->GetClass();
+	}
+
+	// 반대 슬롯 무기를 홀스터로 이동 (CurrentEquippedSlot 상관없이, 반대 슬롯에 무기가 있으면 홀스터로)
+	EWeaponSlot OppositeSlot = (TargetSlot == EWeaponSlot::Primary)
+		? EWeaponSlot::Handgun
+		: EWeaponSlot::Primary;
+
+	UChildActorComponent* OppositeChild = (OppositeSlot == EWeaponSlot::Primary)
+		? CharacterRef->PrimaryChild
+		: CharacterRef->HandgunChild;
+
+	// 반대 슬롯에 무기가 있으면 홀스터로 이동
+	if (OppositeChild && OppositeChild->GetChildActor())
+	{
+		FName HolsterSocket = (OppositeSlot == EWeaponSlot::Primary)
+			? FName("RifleHost_Socket")
+			: FName("PistolHost_Socket");
+
+		UE_LOG(LogTemp, Log, TEXT("PickupAndEquipWeapon: Moving opposite slot weapon to holster socket: %s"), *HolsterSocket.ToString());
+		UnequipWeapon(HolsterSocket, OppositeSlot);
+	}
+
+	// 새 무기 클래스 설정
+	TargetChild->SetChildActorClass(NewWeaponClass);
+
+	// SetChildActorClass로 생성된 무기의 CharacterRef 수동 설정
+	if (AMasterWeapon* NewWeapon = Cast<AMasterWeapon>(TargetChild->GetChildActor()))
+	{
+		if (NewWeapon->WeaponSystem)
+		{
+			NewWeapon->WeaponSystem->CharacterRef = CharacterRef;
+			UE_LOG(LogTemp, Log, TEXT("PickupAndEquipWeapon: CharacterRef manually set for new weapon"));
+		}
+	}
+
+	// 무기 클래스 업데이트
+	if (TargetSlot == EWeaponSlot::Primary)
+	{
+		PrimaryWeaponClass = NewWeaponClass;
+	}
+	else
+	{
+		HandgunWeaponClass = NewWeaponClass;
+	}
+
+	// 손 소켓에 장착
+	FName HandSocket = (TargetSlot == EWeaponSlot::Primary)
+		? FName("Rifle_Socket")
+		: FName("Pistol_Socket");
+
+	EAnimationState NewAnimState = (TargetSlot == EWeaponSlot::Primary)
+		? EAnimationState::RifleShotgun
+		: EAnimationState::Pistol;
+
+	CurrentWeaponClass = NewWeaponClass;
+	AnimationState = NewAnimState;
+	CurrentEquippedSlot = TargetSlot;
+
+	EquipWeapon(HandSocket, TargetSlot);
+
+	UE_LOG(LogTemp, Log, TEXT("PickupAndEquipWeapon: Equipped %s to slot %d"),
+		*NewWeaponClass->GetName(), (int32)TargetSlot);
+
+	return true;
+}

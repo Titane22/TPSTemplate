@@ -105,5 +105,6 @@ public:
 		}
 	};
 
+	UPROPERTY()
 	ATPSTemplateCharacter* CharacterRef;
 };

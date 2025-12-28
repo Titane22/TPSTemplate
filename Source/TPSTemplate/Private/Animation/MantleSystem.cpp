@@ -4,7 +4,6 @@
 #include "Animation/MantleSystem.h"
 #include "Characters/TPSTemplateCharacter.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Components/TimelineComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Animation/AnimInstance.h"
@@ -122,53 +121,19 @@ FMantleAsset UMantleSystem::GetMantleAsset(EMantleType MantleType)
 	{
 	case EMantleType::HighMantle:
 	case EMantleType::FallingMantle:
-		switch (MantleAnimType)
-		{
-		case EMantleAnimType::UE5_Manny:
-			return UE5_Manny_Mantle_2m;
-		case EMantleAnimType::UE5_Quinn:
-			return UE5_Quinn_Mantle_2m;
-		case EMantleAnimType::Custom:
-			return CustomMantle2M;
-		default:
-			return FMantleAsset();
-		}
+		return Mantle_2m;
+
 	case EMantleType::LowMantle:
-		switch (MantleAnimType)
+		switch (HandType)
 		{
-		case EMantleAnimType::UE5_Manny:
-			switch (HandType)
-			{
-			case EMantleHandType::LeftHand:
-				return UE5_Manny_Mantle_1m_LH;
-			case EMantleHandType::RightHand:
-				return UE5_Manny_Mantle_1m_RH;
-			default:
-				return FMantleAsset();
-			}
-		case EMantleAnimType::UE5_Quinn:
-			switch (HandType)
-			{
-			case EMantleHandType::LeftHand:
-				return UE5_Quinn_Mantle_1m_LH;
-			case EMantleHandType::RightHand:
-				return UE5_Quinn_Mantle_1m_RH;
-			default:
-				return FMantleAsset();
-			}
-		case EMantleAnimType::Custom:
-			switch (HandType)
-			{
-			case EMantleHandType::LeftHand:
-				return CustomMantle1MLM;
-			case EMantleHandType::RightHand:
-				return CustomMantle1MRM;
-			default:
-				return FMantleAsset();
-			}
+		case EMantleHandType::LeftHand:
+			return Mantle_1m_LH;
+		case EMantleHandType::RightHand:
+			return Mantle_1m_RH;
 		default:
 			return FMantleAsset();
 		}
+
 	default:
 		return FMantleAsset();
 	}
@@ -672,12 +637,6 @@ bool UMantleSystem::MantleFallingCheck()
 void UMantleSystem::SetHandType(EMantleHandType ParamHandType)
 {
 	HandType = ParamHandType;
-}
-
-void UMantleSystem::SetAnimType(EMantleAnimType ParamAnimType)
-{
-	MantleAnimType = ParamAnimType;
-	MainAnimInst = CharacterRef->GetMesh()->GetAnimInstance();
 }
 
 /// <summary>

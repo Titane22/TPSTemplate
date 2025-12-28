@@ -39,6 +39,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void SwitchToWeapon(EWeaponSlot TargetSlot);
 
+	/**
+	 * 새 무기 픽업 및 장착
+	 * @param NewWeaponClass - 새로 장착할 무기 클래스
+	 * @param TargetSlot - 장착할 슬롯 (Primary 또는 Handgun)
+	 * @param OutDroppedWeaponClass - 드롭된 기존 무기 클래스 (출력)
+	 * @return 성공 여부
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	bool PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EWeaponSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass);
+
 	// 레거시 API (하위 호환성을 위해 유지)
 	UFUNCTION()
 	void SetWeaponState(TSubclassOf<AMasterWeapon> ToSetWeaponClass, EAnimationState ToSetAnimation, EWeaponState CurWeaponState, FName ToSetEquipSocketName, FName ToSetUnequipSocketName, EWeaponSlot WeaponSlot = EWeaponSlot::Primary);
@@ -54,6 +64,7 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY()
 	ATPSTemplateCharacter* CharacterRef;
 
 	// Blueprint에서 무기 클래스를 설정하세요 (Data-Driven)
