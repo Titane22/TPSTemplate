@@ -68,22 +68,7 @@ void APlayer_Base::BeginPlay()
 	// Get Animation Instance
 	LocomotionBP = Cast<ULocomotionAnimInstance>(GetMesh()->GetAnimInstance());
 
-	// Setup Timelines
-	if (CrouchCurve)
-	{
-		FOnTimelineFloat TimelineCallback;
-		TimelineCallback.BindUFunction(this, FName("UpdateCrouchHeight"));
-		CrouchTimeline.AddInterpFloat(CrouchCurve, TimelineCallback);
-	}
-
-	if (AimCurve)
-	{
-		FOnTimelineFloat TimelineCallback;
-		TimelineCallback.BindUFunction(this, FName("UpdateAimView"));
-		AimTimeline.AddInterpFloat(AimCurve, TimelineCallback);
-		AimTimeline.SetPlayRate(4.0f);
-	}
-
+	// Setup Timelines (Aim and Crouch timelines initialized in base class)
 	if (ShoulderCameraCurve)
 	{
 		FOnTimelineFloat TimelineCallback;
@@ -124,10 +109,8 @@ void APlayer_Base::BeginPlay()
 
 void APlayer_Base::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime); // Base class ticks Aim and Crouch timelines
 
-	CrouchTimeline.TickTimeline(DeltaTime);
-	AimTimeline.TickTimeline(DeltaTime);
 	ShoulderCameraTimeline.TickTimeline(DeltaTime);
 }
 
@@ -213,7 +196,8 @@ void APlayer_Base::Move(const FInputActionValue& Value)
 void APlayer_Base::Look(const FInputActionValue& Value)
 {
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
-
+	if (bIsUIState)
+		return;
 	if (Controller != nullptr)
 	{
 		AddControllerYawInput(LookAxisVector.X);
@@ -223,7 +207,7 @@ void APlayer_Base::Look(const FInputActionValue& Value)
 
 void APlayer_Base::ShootFire(const FInputActionValue& Value)
 {
-	if (!IsAim)
+	if (!bIsAim)
 		return;
 
 	bFiring = Value.Get<bool>();
@@ -235,17 +219,15 @@ void APlayer_Base::Aim(const FInputActionValue& Value)
 	if (!EquipmentSystem || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::None)
 		return;
 
-	IsAim = Value.Get<bool>();
+	bool bShouldAim = Value.Get<bool>();
 
-	if (IsAim)
+	if (bShouldAim)
 	{
-		// bUseControllerRotationYaw is already true (set in base class)
-		AimTimeline.Play();
+		StartAim(); // Base class function
 	}
 	else
 	{
-		// Keep bUseControllerRotationYaw = true (always rotate with mouse in TPS)
-		AimTimeline.Reverse();
+		StopAim(); // Base class function
 	}
 }
 
@@ -292,61 +274,19 @@ void APlayer_Base::SprintCompleted(const FInputActionValue& Value)
 
 void APlayer_Base::ToggleCrouch(const FInputActionValue& Value)
 {
-	if (!bInteracting && !GetCharacterMovement()->IsFalling())
+	if (IsCrouch)
 	{
-		if (!IsCrouch)
-		{
-			IsCrouch = true;
-			Crouch();
-			CrouchTimeline.Play();
-		}
-		else
-		{
-			IsCrouch = false;
-			UnCrouch();
-			CrouchTimeline.Reverse();
-		}
+		StopCrouch(); // Base class function
+	}
+	else
+	{
+		StartCrouch(); // Base class function
 	}
 }
 
 void APlayer_Base::Dodge()
 {
-	if (bInteracting || GetCharacterMovement()->IsFalling())
-		return;
-
-	if (DodgeForward != 0.0f)
-	{
-		UAnimMontage* MontageToPlay = nullptr;
-		if (DodgeForward > 0.0f)
-		{
-			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-				TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_F_Montage")));
-		}
-		else
-		{
-			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-				TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_B_Montage")));
-		}
-
-		PlayDodgeMontage(MontageToPlay);
-	}
-
-	if (DodgeRight != 0.0f)
-	{
-		UAnimMontage* MontageToPlay = nullptr;
-		if (DodgeRight > 0.0f)
-		{
-			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-				TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_R_Montage")));
-		}
-		else
-		{
-			MontageToPlay = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-				TEXT("/Game/ThirdPerson/Blueprints/Animation/Dodge/Montage/DiveRoll_L_Montage")));
-		}
-
-		PlayDodgeMontage(MontageToPlay);
-	}
+	PerformDodge(DodgeForward, DodgeRight); // Base class function
 }
 
 void APlayer_Base::Jumping()
@@ -413,8 +353,11 @@ void APlayer_Base::ShoulderCameraChange(float Value)
 		Value);
 }
 
-void APlayer_Base::UpdateAimView(float Value)
+void APlayer_Base::UpdateAimTimeline(float Value)
 {
+	Super::UpdateAimTimeline(Value); // Call base class (empty implementation)
+
+	// Player-specific camera adjustments
 	CameraBoom->TargetArmLength = FMath::Lerp(TargetArmLengths.X, TargetArmLengths.Y, Value);
 
 	CameraBoom->SocketOffset = FMath::Lerp(
@@ -423,49 +366,11 @@ void APlayer_Base::UpdateAimView(float Value)
 		Value);
 }
 
-void APlayer_Base::UpdateCrouchHeight(float Value)
+void APlayer_Base::UpdateCrouchTimeline(float Value)
 {
-	if (IsCrouch)
-	{
-		GetCapsuleComponent()->SetCapsuleRadius(33.0f);
-	}
-	else
-	{
-		GetCapsuleComponent()->SetCapsuleRadius(35.0f);
-	}
-}
+	Super::UpdateCrouchTimeline(Value); // Base class handles capsule radius
 
-//////////////////////////////////////////////////////////////////////////
-// Dodge Functions
-
-void APlayer_Base::PlayDodgeMontage(UAnimMontage* MontageToPlay)
-{
-	if (UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance())
-	{
-		AnimInstance->Montage_Play(MontageToPlay);
-		IsDodging = true;
-
-		FOnMontageEnded CompleteDelegate;
-		CompleteDelegate.BindUObject(this, &APlayer_Base::OnDodgeMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(CompleteDelegate, MontageToPlay);
-
-		FOnMontageBlendingOutStarted BlendOutDelegate;
-		BlendOutDelegate.BindUObject(this, &APlayer_Base::OnDodgeMontageInterrupted);
-		AnimInstance->Montage_SetBlendingOutDelegate(BlendOutDelegate, MontageToPlay);
-	}
-}
-
-void APlayer_Base::OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted)
-{
-	if (!bInterrupted)
-	{
-		IsDodging = false;
-	}
-}
-
-void APlayer_Base::OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
-{
-	IsDodging = false;
+	// Player could add camera height adjustments here if needed
 }
 
 void APlayer_Base::ImpactOnLand()
@@ -541,7 +446,7 @@ void APlayer_Base::HandleFiring()
 bool APlayer_Base::CanFire()
 {
 	bool bCanJumpNow = CanJump();  // 한 번만 호출하고 저장
-	bool bCanShoot = !IsSprint && !IsDodging && bCanJumpNow && bCanSwitchWeapon;
+	bool bCanShoot = !IsSprint && !bIsDodging && bCanJumpNow && bCanSwitchWeapon;
 	bool bResult = bCanShoot || IsCrouch;
 
 	return bResult;
@@ -619,7 +524,7 @@ UUserWidget* APlayer_Base::AddWeaponUI(UWeaponData* WeaponData)
 
 			CurrentWeaponUI->SetWeaponData(
 				WeaponData->WeaponUITexture,
-				WeaponData->WeaponName,
+				WeaponData->ItemName.ToString(),
 				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
 				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
 
@@ -638,11 +543,6 @@ void APlayer_Base::SwitchWeapons()
 
 void APlayer_Base::SwitchToPrimaryWeapon()
 {
-	UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] Called - EquipmentSystem: %s, CanSwitchWeapon: %s, CurrentSlot: %d"),
-		EquipmentSystem ? TEXT("Valid") : TEXT("NULL"),
-		CanSwitchWeapon() ? TEXT("true") : TEXT("false"),
-		EquipmentSystem ? (int32)EquipmentSystem->CurrentEquippedSlot : -1);
-
 	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
 		return;
 
@@ -673,24 +573,25 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 		EWeaponSlot::Primary
 	);
 
+	if (PrimaryChild)
+	{
+		if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+		{
+			CurrentWeapon = Weapon;
+		}
+	}
 	// 3. Wait for Child Actor to initialize and update UI
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
 		[this]()
 		{
-			if (PrimaryChild)
+			if (CurrentWeapon->WeaponData)
 			{
-				if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+				AddWeaponUI(CurrentWeapon->WeaponData);
+				if (LocomotionBP)
 				{
-					if (Weapon->WeaponData)
-					{
-						AddWeaponUI(Weapon->WeaponData);
-						if (LocomotionBP)
-						{
-							LocomotionBP->LeftHandIKOffset = Weapon->WeaponData->LeftHandIKOffset;
-						}
-					}
+					LocomotionBP->LeftHandIKOffset = CurrentWeapon->WeaponData->LeftHandIKOffset;
 				}
 			}
 		},
@@ -704,8 +605,7 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 	if (AnimInstance)
 	{
-		UAnimMontage* RifleEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-			TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1")));
+		UAnimMontage* RifleEquipMontage = CurrentWeapon->WeaponData->WeaponEquipMontage;
 
 		UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] RifleEquipMontage: %s"),
 			RifleEquipMontage ? *RifleEquipMontage->GetName() : TEXT("NULL"));
@@ -735,11 +635,6 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 void APlayer_Base::SwitchToHandgunWeapon()
 {
-	UE_LOG(LogTemp, Log, TEXT("[SwitchToHandgunWeapon] Called - EquipmentSystem: %s, CanSwitchWeapon: %s, CurrentSlot: %d"),
-		EquipmentSystem ? TEXT("Valid") : TEXT("NULL"),
-		CanSwitchWeapon() ? TEXT("true") : TEXT("false"),
-		EquipmentSystem ? (int32)EquipmentSystem->CurrentEquippedSlot : -1);
-
 	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
 		return;
 
@@ -770,24 +665,26 @@ void APlayer_Base::SwitchToHandgunWeapon()
 		EWeaponSlot::Handgun
 	);
 
+	if (HandgunChild)
+	{
+		if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
+		{
+			CurrentWeapon = Weapon;
+			
+		}
+	}
 	// 3. Wait for Child Actor to initialize and update UI
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
 		TimerHandle,
 		[this]()
 		{
-			if (HandgunChild)
+			if (CurrentWeapon->WeaponData)
 			{
-				if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
+				AddWeaponUI(CurrentWeapon->WeaponData);
+				if (LocomotionBP)
 				{
-					if (Weapon->WeaponData)
-					{
-						AddWeaponUI(Weapon->WeaponData);
-						if (LocomotionBP)
-						{
-							LocomotionBP->LeftHandIKOffset = Weapon->WeaponData->LeftHandIKOffset;
-						}
-					}
+					LocomotionBP->LeftHandIKOffset = CurrentWeapon->WeaponData->LeftHandIKOffset;
 				}
 			}
 		},
@@ -799,8 +696,7 @@ void APlayer_Base::SwitchToHandgunWeapon()
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance)
 	{
-		UAnimMontage* PistolEquipMontage = Cast<UAnimMontage>(StaticLoadObject(UAnimMontage::StaticClass(), nullptr,
-			TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2")));
+		UAnimMontage* PistolEquipMontage = CurrentWeapon->WeaponData->WeaponEquipMontage;
 
 		AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
 
@@ -989,7 +885,7 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 		}
 	}
 
-	// ✅ EquipmentSystem을 통해 무기 픽업 및 장착
+	// EquipmentSystem을 통해 무기 픽업 및 장착
 	TSubclassOf<AMasterWeapon> DroppedWeaponClass;
 	if (!EquipmentSystem->PickupAndEquipWeapon(NewWeaponClass, TargetSlot, DroppedWeaponClass))
 	{
@@ -1006,6 +902,10 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 	{
 		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::Handgun;
 	}
+	else
+	{
+		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::None;
+	}
 
 	// 기존 무기를 바닥에 드롭
 	if (DroppedWeaponClass)
@@ -1021,10 +921,10 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 			AInteraction* DroppedPickup = GetWorld()->SpawnActor<AInteraction>(WeaponCDO->WeaponPickupClass, DropTransform);
 			if (DroppedPickup)
 			{
-				// ✅ Runtime 생성된 Interaction에 이벤트 바인딩
+				// Runtime 생성된 Interaction에 이벤트 바인딩
 				DroppedPickup->OnInteractionExecuted.AddDynamic(this, &APlayer_Base::OnInteractionExecuted_Handler);
 
-				// ✅ 저장된 탄약 상태 적용
+				// 저장된 탄약 상태 적용
 				if (bHasSavedAmmo)
 				{
 					DroppedPickup->SavedAmmoState = DroppedAmmoState;

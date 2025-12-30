@@ -4,6 +4,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/EquipmentSystem.h"
 #include "Components/HealthSystem.h"
+#include "Components/InventorySystem.h"
 #include "Components/WeaponSystem.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon/Interactor.h"
@@ -17,6 +18,9 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 ATPSTemplateCharacter::ATPSTemplateCharacter()
 {
+	// Enable Tick for timeline updates
+	PrimaryActorTick.bCanEverTick = true;
+
 	// Capsule Component Settings
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
@@ -51,6 +55,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	EquipmentSystem = CreateDefaultSubobject<UEquipmentSystem>(TEXT("EquipmentSystem"));
 	HealthComponent = CreateDefaultSubobject<UHealthSystem>(TEXT("HealthComponent"));
 	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
+	InventorySystem = CreateDefaultSubobject<UInventorySystem>(TEXT("Inventory System"));
 
 	// Component Hierarchy Setup
 	Primary->SetupAttachment(RootComponent);
@@ -62,6 +67,22 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 void ATPSTemplateCharacter::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// Timeline initialization
+	if (AimCurve)
+	{
+		FOnTimelineFloat Callback;
+		Callback.BindUFunction(this, FName("UpdateAimTimeline"));
+		AimTimeline.AddInterpFloat(AimCurve, Callback);
+		AimTimeline.SetPlayRate(4.0f);
+	}
+
+	if (CrouchCurve)
+	{
+		FOnTimelineFloat Callback;
+		Callback.BindUFunction(this, FName("UpdateCrouchTimeline"));
+		CrouchTimeline.AddInterpFloat(CrouchCurve, Callback);
+	}
 
 	if (EquipmentSystem)
 	{
@@ -194,4 +215,189 @@ void ATPSTemplateCharacter::SwitchToHandgunWeapon()
 void ATPSTemplateCharacter::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData* CurrentWeaponDataAsset)
 {
 	// Base implementation - can be overridden
+}
+
+void ATPSTemplateCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	AimTimeline.TickTimeline(DeltaTime);
+	CrouchTimeline.TickTimeline(DeltaTime);
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Aim Actions
+
+void ATPSTemplateCharacter::StartAim()
+{
+	if (bIsAim) return;
+
+	bIsAim = true;
+	OnAimStarted();
+
+	if (AimCurve)
+	{
+		AimTimeline.Play();
+	}
+}
+
+void ATPSTemplateCharacter::StopAim()
+{
+	if (!bIsAim) return;
+
+	bIsAim = false;
+	OnAimEnded();
+
+	if (AimCurve)
+	{
+		AimTimeline.Reverse();
+	}
+}
+
+void ATPSTemplateCharacter::OnAimStarted()
+{
+	// Virtual hook - base implementation empty
+}
+
+void ATPSTemplateCharacter::OnAimEnded()
+{
+	// Virtual hook - base implementation empty
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Crouch Actions
+
+void ATPSTemplateCharacter::StartCrouch()
+{
+	if (IsCrouch || bInteracting || GetCharacterMovement()->IsFalling())
+		return;
+
+	IsCrouch = true;
+	Crouch();
+	OnCrouchStarted();
+
+	if (CrouchCurve)
+	{
+		CrouchTimeline.Play();
+	}
+}
+
+void ATPSTemplateCharacter::StopCrouch()
+{
+	if (!IsCrouch) return;
+
+	IsCrouch = false;
+	UnCrouch();
+	OnCrouchEnded();
+
+	if (CrouchCurve)
+	{
+		CrouchTimeline.Reverse();
+	}
+}
+
+void ATPSTemplateCharacter::OnCrouchStarted()
+{
+	// Virtual hook - base implementation empty
+}
+
+void ATPSTemplateCharacter::OnCrouchEnded()
+{
+	// Virtual hook - base implementation empty
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Dodge Actions
+
+UAnimMontage* ATPSTemplateCharacter::GetDodgeMontage(float ForwardInput, float RightInput)
+{
+	// Priority: Forward/Backward over Left/Right
+	if (FMath::Abs(ForwardInput) > 0.1f)
+	{
+		return (ForwardInput > 0.0f) ? DodgeMontages.Forward : DodgeMontages.Backward;
+	}
+	else if (FMath::Abs(RightInput) > 0.1f)
+	{
+		return (RightInput > 0.0f) ? DodgeMontages.Right : DodgeMontages.Left;
+	}
+
+	return nullptr;
+}
+
+void ATPSTemplateCharacter::PerformDodge(float ForwardInput, float RightInput)
+{
+	if (bInteracting || GetCharacterMovement()->IsFalling() || bIsDodging)
+		return;
+
+	UAnimMontage* Montage = GetDodgeMontage(ForwardInput, RightInput);
+	if (Montage)
+	{
+		PlayDodgeMontageInternal(Montage);
+	}
+}
+
+void ATPSTemplateCharacter::PlayDodgeMontageInternal(UAnimMontage* MontageToPlay)
+{
+	if (!MontageToPlay) return;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (!AnimInstance) return;
+
+	AnimInstance->Montage_Play(MontageToPlay);
+	bIsDodging = true;
+	OnDodgeStarted();
+
+	FOnMontageEnded EndDelegate;
+	EndDelegate.BindUObject(this, &ATPSTemplateCharacter::OnDodgeMontageEnded);
+	AnimInstance->Montage_SetEndDelegate(EndDelegate, MontageToPlay);
+
+	FOnMontageBlendingOutStarted BlendDelegate;
+	BlendDelegate.BindUObject(this, &ATPSTemplateCharacter::OnDodgeMontageInterrupted);
+	AnimInstance->Montage_SetBlendingOutDelegate(BlendDelegate, MontageToPlay);
+}
+
+void ATPSTemplateCharacter::OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	if (!bInterrupted)
+	{
+		bIsDodging = false;
+		OnDodgeEnded(Montage, bInterrupted);
+	}
+}
+
+void ATPSTemplateCharacter::OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted)
+{
+	bIsDodging = false;
+	OnDodgeEnded(Montage, true);
+}
+
+void ATPSTemplateCharacter::OnDodgeStarted()
+{
+	// Virtual hook - base implementation empty
+}
+
+void ATPSTemplateCharacter::OnDodgeEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Virtual hook - base implementation empty
+}
+
+//////////////////////////////////////////////////////////////////////////
+// Timeline Callbacks
+
+void ATPSTemplateCharacter::UpdateAimTimeline(float Value)
+{
+	// Base implementation - empty (플레이어에서 카메라 로직 추가)
+}
+
+void ATPSTemplateCharacter::UpdateCrouchTimeline(float Value)
+{
+	// Capsule radius 조정
+	if (IsCrouch)
+	{
+		GetCapsuleComponent()->SetCapsuleRadius(33.0f);
+	}
+	else
+	{
+		GetCapsuleComponent()->SetCapsuleRadius(35.0f);
+	}
 }

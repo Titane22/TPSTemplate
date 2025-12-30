@@ -4,15 +4,39 @@
 
 #include "CoreMinimal.h"
 #include "Components/EquipmentSystem.h"
+#include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "Library/AnimationState.h"
 #include "Logging/LogMacros.h"
 #include "TPSTemplateCharacter.generated.h"
 
+class UInventorySystem;
 class UHealthSystem;
 class UInteractor;
+class UCurveFloat;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+
+/**
+ * Dodge montage structure for 4-directional dodge animations
+ */
+USTRUCT(BlueprintType)
+struct FDodgeMontages
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	UAnimMontage* Forward = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	UAnimMontage* Backward = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	UAnimMontage* Right = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation")
+	UAnimMontage* Left = nullptr;
+};
 
 /**
  * Base Character class for TPS Template
@@ -36,11 +60,58 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UEquipmentSystem* EquipmentSystem;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UInventorySystem* InventorySystem;
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UHealthSystem* HealthComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UInteractor* InteractorComponent;
+
+	// Timelines
+	UPROPERTY()
+	FTimeline AimTimeline;
+
+	UPROPERTY()
+	FTimeline CrouchTimeline;
+
+	// Timeline Curves (Blueprint-configurable)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Timeline", meta = (AllowPrivateAccess = "true"))
+	UCurveFloat* AimCurve = nullptr;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Timeline", meta = (AllowPrivateAccess = "true"))
+	UCurveFloat* CrouchCurve = nullptr;
+
+	// Dodge Montages (Blueprint-configurable)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Animation", meta = (AllowPrivateAccess = "true"))
+	FDodgeMontages DodgeMontages;
+
+	// Virtual Timeline Callbacks
+	UFUNCTION()
+	virtual void UpdateAimTimeline(float Value);
+
+	UFUNCTION()
+	virtual void UpdateCrouchTimeline(float Value);
+
+	// Montage Callbacks
+	UFUNCTION()
+	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	UFUNCTION()
+	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
+
+	// Virtual Hooks for Subclasses
+	virtual void OnAimStarted();
+	virtual void OnAimEnded();
+	virtual void OnCrouchStarted();
+	virtual void OnCrouchEnded();
+	virtual void OnDodgeStarted();
+	virtual void OnDodgeEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	// Internal Helper
+	virtual UAnimMontage* GetDodgeMontage(float ForwardInput, float RightInput);
+	void PlayDodgeMontageInternal(UAnimMontage* MontageToPlay);
 
 public:
 	
@@ -55,7 +126,7 @@ public:
 	bool IsSliding = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
-	bool IsDodging = false;
+	bool bIsDodging = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	float DodgeForward = 0.0f;
@@ -88,7 +159,7 @@ public:
 	bool bFiring = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	bool IsAim = false;
+	bool bIsAim = false;
 	
 public:
 	ATPSTemplateCharacter();
@@ -115,6 +186,8 @@ public:
 	UFUNCTION()
 	void StartRagdoll();
 
+	UInventorySystem* GetInventorySystem() const { return InventorySystem; }
+	
 	// Virtual functions that can be overridden by player/AI
 	virtual void Interact();
 
@@ -132,7 +205,15 @@ public:
 	FORCEINLINE class UHealthSystem* GetHealthComponent() const { return HealthComponent; }
 
 	virtual EWeaponSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EWeaponSlot::None; }
-	
+
+	// Core Action Functions (Callable by AI or Player)
+	void StartAim();
+	void StopAim();
+	void StartCrouch();
+	void StopCrouch();
+	void PerformDodge(float ForwardInput, float RightInput);
+
 protected:
 	virtual void BeginPlay();
+	virtual void Tick(float DeltaTime) override;
 };

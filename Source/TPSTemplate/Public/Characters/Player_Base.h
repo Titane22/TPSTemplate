@@ -89,13 +89,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UMantleSystem* MantleComponent;
 
-	// Timelines
-	UPROPERTY()
-	FTimeline CrouchTimeline;
-
-	UPROPERTY()
-	FTimeline AimTimeline;
-
+	// Timelines (Aim and Crouch timelines moved to base class)
 	UPROPERTY()
 	FTimeline ShoulderCameraTimeline;
 
@@ -112,18 +106,12 @@ protected:
 	void Jumping();
 	void FlipFlapCameraChange();
 
-	// Timeline Update Functions
-	UFUNCTION()
-	void UpdateAimView(float Value);
+	// Timeline Update Functions (Virtual overrides from base class)
+	virtual void UpdateAimTimeline(float Value) override;
+	virtual void UpdateCrouchTimeline(float Value) override;
 
 	UFUNCTION()
 	void ShoulderCameraChange(float Value);
-
-	UFUNCTION()
-	void UpdateCrouchHeight(float Value);
-
-	UFUNCTION()
-	void PlayDodgeMontage(UAnimMontage* MontageToPlay);
 
 	// Weapon Functions
 	void StopFire();
@@ -148,12 +136,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	class UUserWidget* UICrosshair;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UPROPERTY()
 	class AMasterWeapon* CurrentWeapon;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* UIAmmo;
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Game Mode")
+	bool bIsUIState = false;
+	
 	// Camera variables
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Camera)
 	bool RightShoulder;
@@ -174,19 +162,11 @@ public:
 	float TurnRate;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
-	UCurveFloat* CrouchCurve;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
-	UCurveFloat* AimCurve;
-
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Timeline")
 	UCurveFloat* ShoulderCameraCurve;
 
 	class ULocomotionAnimInstance* LocomotionBP;
 
 	void OnMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void OnDodgeMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-	void OnDodgeMontageInterrupted(UAnimMontage* Montage, bool bInterrupted);
 
 	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

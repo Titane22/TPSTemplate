@@ -69,7 +69,7 @@ void ULocomotionAnimInstance::UpdateCharacterState()
         bIsSprint = PlayerRef->IsSprint;
         LandState = PlayerRef->CurrentLandState;
         bIsJump = PlayerRef->IsJump;
-        bIsAim = PlayerRef->IsAim;
+        bIsAim = PlayerRef->bIsAim;
         Pitch = (PlayerRef->GetBaseAimRotation() - PlayerRef->GetActorRotation()).GetNormalized().Pitch;
         bIsPistolEquip = bIsPistolEquipped;
         bIsRifleEquip = bIsPrimaryEquipped;
