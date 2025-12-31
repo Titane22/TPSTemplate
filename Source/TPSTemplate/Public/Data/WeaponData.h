@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Engine/DataAsset.h"
+#include "Data/ItemData.h"
 #include "WeaponData.generated.h"
 
 class UNiagaraSystem;
@@ -26,10 +26,10 @@ enum class EFireMode : uint8
 };
 
 /**
- * 
+ * Weapon-specific data that extends the base ItemData
  */
 UCLASS()
-class TPSTEMPLATE_API UWeaponData : public UPrimaryDataAsset
+class TPSTEMPLATE_API UWeaponData : public UItemData
 {
 	GENERATED_BODY()
 
@@ -37,9 +37,6 @@ public:
 	UWeaponData();
 
 	// Weapon Details
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
-	FString WeaponName;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
 	EWeaponType WeaponType;
 
@@ -88,6 +85,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	UAnimMontage* WeaponReloadMontage;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	UAnimMontage* WeaponEquipMontage;
 	// Audio
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Audio")
 	USoundBase* FireSound;

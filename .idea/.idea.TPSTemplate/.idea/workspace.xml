@@ -15,27 +15,9 @@
     <list default="true" id="9a4d6da4-0d6d-453b-99d1-46528282e171" name="변경" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.TPSTemplate/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.TPSTemplate/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Config/DefaultEngine.ini" beforeDir="false" afterPath="$PROJECT_DIR$/Config/DefaultEngine.ini" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/LocomotionAnimInstance.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/LocomotionAnimInstance.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/MantleSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/MantleSystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/Player_Base.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/Player_Base.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/TPSTemplateCharacter.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/TPSTemplateCharacter.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Components/EquipmentSystem.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Components/EquipmentSystem.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interaction.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interaction.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/InteractionComponent.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/InteractionComponent.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interactor.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interactor.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/MasterWeapon.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/MasterWeapon.cpp" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/LocomotionAnimInstance.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/LocomotionAnimInstance.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/MantleSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/MantleSystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/Player_Base.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/Player_Base.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/TPSTemplateCharacter.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/TPSTemplateCharacter.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/EquipmentSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/EquipmentSystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/HealthSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/HealthSystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/WeaponSystem.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Components/WeaponSystem.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Library/MantleEnumLib.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Library/MantleEnumLib.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interaction.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interaction.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/InteractionComponent.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/InteractionComponent.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interactor.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interactor.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/MasterWeapon.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/MasterWeapon.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Private/Data/WeaponData.cpp" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Private/Data/WeaponData.cpp" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/TPSTemplate/Public/Data/WeaponData.h" beforeDir="false" afterPath="$PROJECT_DIR$/Source/TPSTemplate/Public/Data/WeaponData.h" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/TPSTemplate.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/TPSTemplate.sln.DotSettings.user" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -70,11 +52,40 @@
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Core/Public/Delegates/DelegateSignatureImpl.inl" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Engine/Classes/GameFramework/Actor.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/Engine/Public/SkeletalRenderPublic.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://C:/Program Files/Epic Games/UE_5.4/Engine/Source/Runtime/SymsLib/syms/core/base/syms_dev.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/LocomotionAnimInstance.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Animation/MantleSystem.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/Player_Base.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Characters/TPSTemplateCharacter.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Components/EquipmentSystem.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Data/InteractionData.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Data/ItemData.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Enemy/TPSTemplate_AIController.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Enemy/TPSTemplate_Enemy_Base.cpp" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Objects/ItemSpawner.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interaction.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/Interactor.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Weapon/MasterWeapon.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Private/Widget/W_ItemIcon.cpp" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/LocomotionAnimInstance.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Animation/MantleSystem.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/Player_Base.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Characters/TPSTemplateCharacter.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Components/EquipmentSystem.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Components/WeaponSystem.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/InteractionContext.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/InteractionData.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/InventoryTypes.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/ItemData.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Data/WeaponData.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Library/InteractiveType.h" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Objects/ItemSpawner.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interaction.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/InteractionComponent.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/Interactor.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Weapon/MasterWeapon.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Widget/W_ItemIcon.h" root0="FORCE_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Source/TPSTemplate/Public/Widget/W_WeaponPickup.h" root0="FORCE_HIGHLIGHTING" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 1
@@ -218,7 +229,11 @@
       <updated>1766794746378</updated>
       <workItem from="1766794748307" duration="44398000" />
       <workItem from="1766885444944" duration="4377000" />
-      <workItem from="1766898688801" duration="29858000" />
+      <workItem from="1766898688801" duration="32365000" />
+      <workItem from="1766962039821" duration="21080000" />
+      <workItem from="1767007477487" duration="4077000" />
+      <workItem from="1767046390853" duration="32109000" />
+      <workItem from="1767095273404" duration="8201000" />
     </task>
     <servers />
   </component>
