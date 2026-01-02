@@ -83,14 +83,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Properties", meta = (ClampMin = "0.0"))
 	float Weight;
 
-	/** Base sell value of the item */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Properties", meta = (ClampMin = "0"))
-	int32 SellValue;
-
-	/** Base buy value of the item (0 means cannot be purchased) */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Properties", meta = (ClampMin = "0"))
-	int32 BuyValue;
-
 	//==============================================================================
 	// Utility Functions
 	//==============================================================================
@@ -98,10 +90,6 @@ public:
 	/** Get the total weight for a given quantity */
 	UFUNCTION(BlueprintPure, Category = "Item")
 	float GetTotalWeight(int32 Quantity) const;
-
-	/** Get the total sell value for a given quantity */
-	UFUNCTION(BlueprintPure, Category = "Item")
-	int32 GetTotalSellValue(int32 Quantity) const;
 
 	/** Check if the item is valid for use */
 	UFUNCTION(BlueprintPure, Category = "Item")

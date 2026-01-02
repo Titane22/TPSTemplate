@@ -13,5 +13,8 @@ UCLASS()
 class TPSTEMPLATE_API AShooterPlayerController : public APlayerController
 {
 	GENERATED_BODY()
-	
+
+public:
+	UFUNCTION(BlueprintImplementableEvent, Category = "Looting")
+	void InteractLooting(class UInventorySystem* InventorySystem);
 };

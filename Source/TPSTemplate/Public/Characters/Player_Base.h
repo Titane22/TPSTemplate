@@ -196,6 +196,8 @@ protected:
 	/** 무기 픽업 처리 (Helper) */
 	void HandleWeaponPickup(class AInteraction* Interaction, const struct FInteractionContext& Context);
 
+	void HandlePickup(class AInteraction* Interaction, const struct FInteractionContext& Context);
+	
 	UFUNCTION()
 	void ClearWeaponUI();
 

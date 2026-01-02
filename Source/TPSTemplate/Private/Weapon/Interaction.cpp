@@ -61,7 +61,7 @@ FInteractionResult AInteraction::ExecuteInteraction_Implementation(const FIntera
 		UGameplayStatics::PlaySoundAtLocation(this, InteractionData->InteractionCompleteSound, GetActorLocation());
 	}
 
-	// ✅ 이벤트 브로드캐스트 - 외부에서 처리 가능!
+	// 이벤트 브로드캐스트 - 외부에서 처리 가능!
 	OnInteractionExecuted.Broadcast(this, Context);
 
 	UE_LOG(LogTemp, Log, TEXT("Interaction executed: %s"), *GetName());
@@ -92,6 +92,7 @@ bool AInteraction::CanInteract_Implementation(AController* InstigatorRef) const
 		return false;
 	}
 
+
 	return true;
 }
 
@@ -102,7 +103,7 @@ void AInteraction::SetHighlighted(bool bHighlight)
 
 	bIsHighlighted = bHighlight;
 
-	// ✅ 이벤트 브로드캐스트 - 블루프린트에서 시각 효과 추가 가능
+	// 이벤트 브로드캐스트 - 블루프린트에서 시각 효과 추가 가능
 	OnHighlightChanged.Broadcast(bHighlight);
 
 	// 블루프린트에서 시각적 피드백 구현 가능
@@ -117,7 +118,7 @@ void AInteraction::OnInteractionStarted_Implementation(const FInteractionContext
 		UGameplayStatics::PlaySoundAtLocation(this, InteractionData->InteractionStartSound, GetActorLocation());
 	}
 
-	// ✅ 이벤트 브로드캐스트
+	// 이벤트 브로드캐스트
 	OnInteractionStartedEvent.Broadcast(this, Context);
 
 	UE_LOG(LogTemp, Log, TEXT("Interaction started (Hold): %s"), *GetName());

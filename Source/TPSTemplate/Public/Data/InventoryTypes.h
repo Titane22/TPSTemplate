@@ -109,16 +109,6 @@ struct FItemSlot
 		return 0.0f;
 	}
 
-	/** Get total sell value of items in this slot */
-	int32 GetTotalSellValue() const
-	{
-		if (UItemData* Data = GetItemData())
-		{
-			return Data->GetTotalSellValue(Quantity);
-		}
-		return 0;
-	}
-
 	/** Check if this slot can stack with another slot */
 	bool CanStackWith(const FItemSlot& Other) const
 	{

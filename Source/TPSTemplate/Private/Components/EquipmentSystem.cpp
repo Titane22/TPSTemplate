@@ -291,6 +291,7 @@ bool UEquipmentSystem::PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeapon
 	}
 
 	// 손 소켓에 장착
+	// TODO: 소켓도 WeaponData에 저장
 	FName HandSocket = (TargetSlot == EWeaponSlot::Primary)
 		? FName("Rifle_Socket")
 		: FName("Pistol_Socket");

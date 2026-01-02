@@ -35,6 +35,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool AddItem(UItemData* ItemData, int32 GridRow, int32 GridCol, int32 Quantity = 1);
 
+	/** Add an item to the inventory at the specified position */
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	bool TryAddItemEmptySpot(UItemData* ItemData, int32 Quantity = 1);
+	
 	/** Remove an item from the inventory by InstanceId */
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool RemoveItem(FGuid InstanceId);
@@ -73,13 +77,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Inventory")
 	bool GetItemAtCellCopy(int32 Row, int32 Col, FItemSlot& OutItem);
 
-	//==============================================================================
-	// Testing / Debug
-	//==============================================================================
-
-	/** Add test items for debugging (call in BeginPlay or Blueprint) */
-	UFUNCTION(BlueprintCallable, Category = "Inventory|Debug")
-	void AddTestItems(UItemData* RifleData, UItemData* PistolData);
+	/** Initialize the grid (called automatically in BeginPlay, but can be called manually if needed) */
+	UFUNCTION(BlueprintCallable, Category = "Inventory")
+	void InitializeGrid();
 
 protected:
 	//==============================================================================
@@ -114,9 +114,6 @@ protected:
 	//==============================================================================
 	// Helper Functions
 	//==============================================================================
-
-	/** Initialize the grid */
-	void InitializeGrid();
 
 	/** Get 1D array index from 2D grid coordinates */
 	int32 GetGridIndex(int32 Row, int32 Col) const;

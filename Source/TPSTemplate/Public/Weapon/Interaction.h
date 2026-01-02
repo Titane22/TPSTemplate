@@ -54,10 +54,6 @@ class TPSTEMPLATE_API AInteraction : public AActor
 public:
 	AInteraction();
 
-	//==============================================================================
-	// Components
-	//==============================================================================
-
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	USceneComponent* DefaultSceneRoot = nullptr;
@@ -80,12 +76,12 @@ protected:
 
 	virtual void BeginPlay() override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
-	//==============================================================================
-	// Events (Data-Driven 핵심!)
-	//==============================================================================
-
+	
 public:
+	//==============================================================================
+	// Events (Data-Driven)
+	//==============================================================================
+
 	/** 상호작용 실행 시 발생 - 블루프린트/C++에서 바인딩 가능 */
 	UPROPERTY(BlueprintAssignable, Category = "Interaction|Events")
 	FOnInteractionExecuted OnInteractionExecuted;

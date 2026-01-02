@@ -9,7 +9,7 @@
 #include "Data/WeaponData.h"
 #include "Kismet/GameplayStatics.h"
 #include "Library/AnimationState.h"
-#include "../ShooterPlayerController.h"
+#include "Controller/ShooterPlayerController.h"
 #include "Blueprint/UserWidget.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Widget/W_DynamicWeaponHUD.h"
@@ -28,7 +28,7 @@ AMasterWeapon::AMasterWeapon()
     // Setting up the component hierarchy
     RootComponent = DefaultSceneRoot;
     WeaponMesh->SetupAttachment(DefaultSceneRoot);
-
+    
     WeaponType = EAnimationState::Unarmed;
     bReloading = false;
     bAutoReload = false;

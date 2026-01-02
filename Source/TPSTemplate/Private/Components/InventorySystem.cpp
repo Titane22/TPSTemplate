@@ -73,7 +73,7 @@ bool UInventorySystem::AddItem(UItemData* ItemData, int32 GridRow, int32 GridCol
 	float ItemWeight = ItemData->GetTotalWeight(Quantity);
 	if (CurrentWeight + ItemWeight > MaxWeight)
 	{
-		// TODO: Allert Message
+		// TODO: UI 알림 델리게이트 브로드캐스트
 		UE_LOG(LogTemp, Warning, TEXT("[InventorySystem] AddItem failed: Weight limit exceeded"));
 		return false;
 	}
@@ -96,6 +96,59 @@ bool UInventorySystem::AddItem(UItemData* ItemData, int32 GridRow, int32 GridCol
 		*ItemData->ItemName.ToString(), GridRow, GridCol, CurrentWeight, MaxWeight);
 
 	return true;
+}
+
+bool UInventorySystem::TryAddItemEmptySpot(UItemData* ItemData, int32 Quantity)
+{
+	if (!ItemData || Quantity <= 0)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[InventorySystem] AddItem failed: Invalid ItemData or Quantity"));
+		return false;
+	}
+
+	// Check weight limit
+	float ItemWeight = ItemData->GetTotalWeight(Quantity);
+	if (CurrentWeight + ItemWeight > MaxWeight)
+	{
+		// TODO: UI 알림 델리게이트 브로드캐스트
+		UE_LOG(LogTemp, Warning, TEXT("[InventorySystem] AddItem failed: Weight limit exceeded"));
+		return false;
+	}
+	if (ItemData->bStackable)
+	{
+		int32 RemainingQuantity = Quantity;
+
+		for (FItemSlot& Slot : Items)
+		{
+			if (Slot.ItemData.LoadSynchronous() == ItemData && Slot.Quantity < ItemData->MaxStackSize)
+			{
+				int32 CanAddNum = FMath::Min(RemainingQuantity, ItemData->MaxStackSize - Slot.Quantity);
+				Slot.Quantity += CanAddNum;
+				RemainingQuantity -= CanAddNum;
+				
+				UE_LOG(LogTemp, Log, TEXT("[InventorySystem] Stacked %d items (Remaining: %d)"), CanAddNum, RemainingQuantity);
+
+				if (RemainingQuantity <= 0)
+				{
+					RecalculateWeight();
+					return true;
+				}
+			}
+		}
+
+		Quantity = RemainingQuantity;
+	}
+	
+	int32 EmptyRow, EmptyCol;
+	if (FindEmptySpot(ItemData, EmptyRow, EmptyCol))
+	{
+		return AddItem(ItemData, EmptyRow, EmptyCol, Quantity);
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Can't find Empty Spot in Inventory"));
+		return false;
+	}
 }
 
 bool UInventorySystem::RemoveItem(FGuid InstanceId)
@@ -339,34 +392,4 @@ void UInventorySystem::RecalculateWeight()
 	{
 		CurrentWeight += Item.GetTotalWeight();
 	}
-}
-
-//==============================================================================
-// Testing / Debug
-//==============================================================================
-
-void UInventorySystem::AddTestItems(UItemData* RifleData, UItemData* PistolData)
-{
-	if (!RifleData || !PistolData)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("[InventorySystem] AddTestItems failed: Invalid item data"));
-		return;
-	}
-
-	// Add Pistol at (0, 0)
-	bool bPistolAdded = AddItem(PistolData, 0, 0, 1);
-	if (bPistolAdded)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[InventorySystem] Test: Added Pistol at (0, 0)"));
-	}
-
-	// Add Rifle at (1, 2)
-	bool bRifleAdded = AddItem(RifleData, 1, 2, 1);
-	if (bRifleAdded)
-	{
-		UE_LOG(LogTemp, Log, TEXT("[InventorySystem] Test: Added Rifle at (1, 2)"));
-	}
-
-	UE_LOG(LogTemp, Log, TEXT("[InventorySystem] Test items added. Total items: %d, Weight: %.2f/%.2f"),
-		Items.Num(), CurrentWeight, MaxWeight);
 }

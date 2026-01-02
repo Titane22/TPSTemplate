@@ -126,13 +126,13 @@ void UInteractor::DetectInteractions()
 	}
 
 	// 상호작용 가능 여부 체크
-	AController* PlayerController = CharacterRef->GetController();
-	if (!PlayerController || !HitInteraction->CanInteract(PlayerController))
+	AController* PC = CharacterRef->GetController();
+	if (!PC || !HitInteraction->CanInteract(PC))
 	{
 		// 상호작용 불가능
 		UE_LOG(LogTemp, Warning, TEXT("CanInteract failed for: %s (PlayerController: %s)"),
 			*HitInteraction->GetName(),
-			PlayerController ? TEXT("Valid") : TEXT("NULL"));
+			PC ? TEXT("Valid") : TEXT("NULL"));
 		StopCurrentInteraction();
 		return;
 	}
@@ -220,8 +220,8 @@ void UInteractor::TriggerInteraction()
 	if (!Interaction)
 		return;
 
-	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
-	if (!PlayerController)
+	AController* PC = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PC)
 	{
 		UE_LOG(LogTemp, Error, TEXT("TriggerInteraction: Player controller is null!"));
 		return;
@@ -234,7 +234,7 @@ void UInteractor::TriggerInteraction()
 		bIsInteracting = true;
 		InteractionStartTime = GetWorld()->GetTimeSeconds();
 
-		FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData());
+		FInteractionContext Context(PC, Interaction, Interaction->GetInteractionData());
 		Interaction->OnInteractionStarted(Context);
 
 		UE_LOG(LogTemp, Log, TEXT("Hold interaction started: %s"), *Interaction->GetName());
@@ -255,14 +255,14 @@ void UInteractor::CancelInteraction()
 	if (!Interaction)
 		return;
 
-	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
-	if (!PlayerController)
+	AController* PC = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PC)
 		return;
 
 	bIsInteracting = false;
 	InteractionStartTime = 0.0f;
 
-	FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData());
+	FInteractionContext Context(PC, Interaction, Interaction->GetInteractionData());
 	Interaction->OnInteractionCancelled(Context);
 
 	UE_LOG(LogTemp, Log, TEXT("Interaction cancelled: %s"), *Interaction->GetName());
@@ -277,8 +277,8 @@ void UInteractor::ExecuteCurrentInteraction()
 	if (!Interaction)
 		return;
 
-	AController* PlayerController = CharacterRef ? CharacterRef->GetController() : nullptr;
-	if (!PlayerController)
+	AController* PC = CharacterRef ? CharacterRef->GetController() : nullptr;
+	if (!PC)
 	{
 		UE_LOG(LogTemp, Error, TEXT("ExecuteCurrentInteraction: Player controller is null!"));
 		return;
@@ -292,7 +292,7 @@ void UInteractor::ExecuteCurrentInteraction()
 	}
 
 	// Context 생성 및 실행
-	FInteractionContext Context(PlayerController, Interaction, Interaction->GetInteractionData(), Distance);
+	FInteractionContext Context(PC, Interaction, Interaction->GetInteractionData(), Distance);
 	FInteractionResult Result = Interaction->ExecuteInteraction(Context);
 
 	if (Result.bSuccess)

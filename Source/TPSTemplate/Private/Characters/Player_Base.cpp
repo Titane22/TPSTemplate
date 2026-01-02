@@ -90,7 +90,7 @@ void APlayer_Base::BeginPlay()
 		}
 	}
 
-	// ✅ Interaction 이벤트 바인딩 (Data-Driven)
+	// Interaction 이벤트 바인딩 (Data-Driven)
 	// 레벨의 모든 Interaction에 이벤트 핸들러 연결
 	TArray<AActor*> FoundInteractions;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AInteraction::StaticClass(), FoundInteractions);
@@ -103,8 +103,6 @@ void APlayer_Base::BeginPlay()
 			UE_LOG(LogTemp, Log, TEXT("Bound interaction event: %s"), *Interaction->GetName());
 		}
 	}
-
-	CanFire();
 }
 
 void APlayer_Base::Tick(float DeltaTime)
@@ -851,6 +849,10 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 		TargetSlot = EWeaponSlot::Primary;
 		MontagePath = TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1");
 	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Undefined WeaponTypeStr"));
+	}
 
 	// 무기 클래스 로드
 	TSubclassOf<AMasterWeapon> NewWeaponClass = LoadClass<AMasterWeapon>(nullptr, *WeaponClassPath);
@@ -1002,4 +1004,15 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 	Interaction->Destroy();
 
 	UE_LOG(LogTemp, Log, TEXT("HandleWeaponPickup: Equipped %s successfully"), *WeaponClassPath);
+}
+
+void APlayer_Base::HandlePickup(class AInteraction* Interaction, const struct FInteractionContext& Context)
+{
+	if (!Interaction || !Context.InteractionData || !EquipmentSystem)
+	{
+		UE_LOG(LogTemp, Error, TEXT("HandleWeaponPickup: Invalid parameters"));
+		return;
+	}
+
+	
 }
