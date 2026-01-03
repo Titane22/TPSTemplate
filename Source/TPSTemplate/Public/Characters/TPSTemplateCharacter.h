@@ -204,7 +204,7 @@ public:
 
 	FORCEINLINE class UHealthSystem* GetHealthComponent() const { return HealthComponent; }
 
-	virtual EWeaponSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EWeaponSlot::None; }
+	virtual EEquipmentSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EEquipmentSlot::None; }
 
 	// Core Action Functions (Callable by AI or Player)
 	void StartAim();

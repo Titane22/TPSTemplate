@@ -6,6 +6,7 @@
 #include "Engine/DataAsset.h"
 #include "ItemData.generated.h"
 
+class AEquipmentBase;
 /**
  * Item rarity levels
  */
@@ -47,6 +48,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Basic")
 	UTexture2D* ItemIcon;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Details")
+	TSubclassOf<AEquipmentBase> EquipmentClass;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	FName EquipSocketName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
+	FName UnequipSocketName;
 	//==============================================================================
 	// Grid System (Resident Evil style inventory)
 	//==============================================================================

@@ -12,7 +12,7 @@ UWeaponData::UWeaponData()
 
     // Weapon Details
     WeaponType = EWeaponType::Pistol;
-    WeaponClass = nullptr;
+    EquipmentClass = nullptr;
 
     // Fire Mode Data
     FireMode = EFireMode::SemiAuto;

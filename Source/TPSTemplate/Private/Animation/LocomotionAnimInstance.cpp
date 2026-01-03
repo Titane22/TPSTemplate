@@ -63,8 +63,8 @@ void ULocomotionAnimInstance::UpdateCharacterState()
     // Player-specific properties need to be accessed from APlayer_Base
     if (APlayer_Base* PlayerRef = Cast<APlayer_Base>(CharacterRef))
     {
-        bool bIsPistolEquipped = PlayerRef->GetCurWeaponSlot() == EWeaponSlot::Handgun;
-        bool bIsPrimaryEquipped = PlayerRef->GetCurWeaponSlot() == EWeaponSlot::Primary;
+        bool bIsPistolEquipped = PlayerRef->GetCurWeaponSlot() == EEquipmentSlot::Handgun;
+        bool bIsPrimaryEquipped = PlayerRef->GetCurWeaponSlot() == EEquipmentSlot::Primary;
         bIsCrouching = PlayerRef->IsCrouch;
         bIsSprint = PlayerRef->IsSprint;
         LandState = PlayerRef->CurrentLandState;

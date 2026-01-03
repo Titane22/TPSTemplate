@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "Equipments/EquipmentBase.h"
 #include "Library/AnimationState.h"
 #include "MasterWeapon.generated.h"
 
@@ -15,7 +15,7 @@ class APlayer_Base;
 class AIWeaponPickup;
 
 UCLASS()
-class TPSTEMPLATE_API AMasterWeapon : public AActor
+class TPSTEMPLATE_API AMasterWeapon : public AEquipmentBase
 {
 	GENERATED_BODY()
 	

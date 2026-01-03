@@ -214,7 +214,7 @@ void APlayer_Base::ShootFire(const FInputActionValue& Value)
 
 void APlayer_Base::Aim(const FInputActionValue& Value)
 {
-	if (!EquipmentSystem || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::None)
+	if (!EquipmentSystem || EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::None)
 		return;
 
 	bool bShouldAim = Value.Get<bool>();
@@ -236,11 +236,11 @@ void APlayer_Base::Reload()
 
 	AMasterWeapon* MasterWeapon = nullptr;
 
-	if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
+	if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
 	{
 		MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 	}
-	else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
+	else if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
 	{
 		MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 	}
@@ -423,13 +423,13 @@ void APlayer_Base::HandleFiring()
 		return;
 	}
 
-	if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
+	if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
 	{
 		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 		UWeaponData* CurrentWeaponDataAsset = MasterWeapon->WeaponData;
 		ReadyToFire(MasterWeapon, CurrentWeaponDataAsset);
 	}
-	else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
+	else if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
 	{
 		AMasterWeapon* MasterWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 		UWeaponData* CurrentWeaponDataAsset = MasterWeapon->WeaponData;
@@ -504,11 +504,11 @@ UUserWidget* APlayer_Base::AddWeaponUI(UWeaponData* WeaponData)
 				return nullptr;
 			}
 
-			if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
+			if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
 			{
 				CurrentWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
 			}
-			else if (EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
+			else if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
 			{
 				CurrentWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
 			}
@@ -541,7 +541,7 @@ void APlayer_Base::SwitchWeapons()
 
 void APlayer_Base::SwitchToPrimaryWeapon()
 {
-	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Primary)
+	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
 		return;
 
 	if (!LocomotionBP)
@@ -551,25 +551,7 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 	bCanSwitchWeapon = false;
 
-	// 1. Unequip Pistol
-	EquipmentSystem->SetWeaponState(
-		EquipmentSystem->HandgunWeaponClass,
-		EAnimationState::Pistol,
-		EWeaponState::Unequip,
-		FName(""),
-		FName("PistolHost_Socket"),
-		EWeaponSlot::Handgun
-	);
-
-	// 2. Equip Rifle
-	EquipmentSystem->SetWeaponState(
-		EquipmentSystem->PrimaryWeaponClass,
-		EAnimationState::RifleShotgun,
-		EWeaponState::Equip,
-		FName("Rifle_Socket"),
-		FName(""),
-		EWeaponSlot::Primary
-	);
+	EquipmentSystem->SwitchToWeapon(EEquipmentSlot::Primary);
 
 	if (PrimaryChild)
 	{
@@ -633,7 +615,7 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 void APlayer_Base::SwitchToHandgunWeapon()
 {
-	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EWeaponSlot::Handgun)
+	if (!EquipmentSystem || !CanSwitchWeapon() || EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
 		return;
 
 	if (!LocomotionBP)
@@ -643,25 +625,7 @@ void APlayer_Base::SwitchToHandgunWeapon()
 
 	bCanSwitchWeapon = false;
 
-	// 1. Unequip Rifle
-	EquipmentSystem->SetWeaponState(
-		EquipmentSystem->PrimaryWeaponClass,
-		EAnimationState::RifleShotgun,
-		EWeaponState::Unequip,
-		FName(""),
-		FName("RifleHost_Socket"),
-		EWeaponSlot::Primary
-	);
-
-	// 2. Equip Pistol
-	EquipmentSystem->SetWeaponState(
-		EquipmentSystem->HandgunWeaponClass,
-		EAnimationState::Pistol,
-		EWeaponState::Equip,
-		FName("Pistol_Socket"),
-		FName(""),
-		EWeaponSlot::Handgun
-	);
+	EquipmentSystem->SwitchToWeapon(EEquipmentSlot::Handgun);
 
 	if (HandgunChild)
 	{
@@ -836,17 +800,17 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 	}
 
 	// WeaponType 파싱
-	EWeaponSlot TargetSlot = EWeaponSlot::Primary;
+	EEquipmentSlot TargetSlot = EEquipmentSlot::Primary;
 	FString MontagePath;
 
 	if (WeaponTypeStr.Equals("Pistol"))
 	{
-		TargetSlot = EWeaponSlot::Handgun;
+		TargetSlot = EEquipmentSlot::Handgun;
 		MontagePath = TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Pistol/Montages/MM_Pistol_Equip2");
 	}
 	else if (WeaponTypeStr.Equals("RifleAndShotgun"))
 	{
-		TargetSlot = EWeaponSlot::Primary;
+		TargetSlot = EEquipmentSlot::Primary;
 		MontagePath = TEXT("/Game/ThirdPerson/Blueprints/Animation/Weapons/Rifle/Montages/MM_Rifle_Equip1");
 	}
 	else
@@ -866,7 +830,7 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 	FWeaponAmmoState DroppedAmmoState;
 	bool bHasSavedAmmo = false;
 
-	UChildActorComponent* CurrentTargetChild = (TargetSlot == EWeaponSlot::Primary) ? PrimaryChild : HandgunChild;
+	UChildActorComponent* CurrentTargetChild = (TargetSlot == EEquipmentSlot::Primary) ? PrimaryChild : HandgunChild;
 	if (CurrentTargetChild)
 	{
 		if (AMasterWeapon* CurWeapon = Cast<AMasterWeapon>(CurrentTargetChild->GetChildActor()))
@@ -896,17 +860,17 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 	}
 
 	// 무기 장착 플래그 설정 (발사/조준 활성화)
-	if (TargetSlot == EWeaponSlot::Primary)
+	if (TargetSlot == EEquipmentSlot::Primary)
 	{
-		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::Primary;
+		EquipmentSystem->CurrentEquippedSlot = EEquipmentSlot::Primary;
 	}
-	else if (TargetSlot == EWeaponSlot::Handgun)
+	else if (TargetSlot == EEquipmentSlot::Handgun)
 	{
-		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::Handgun;
+		EquipmentSystem->CurrentEquippedSlot = EEquipmentSlot::Handgun;
 	}
 	else
 	{
-		EquipmentSystem->CurrentEquippedSlot = EWeaponSlot::None;
+		EquipmentSystem->CurrentEquippedSlot = EEquipmentSlot::None;
 	}
 
 	// 기존 무기를 바닥에 드롭
@@ -951,7 +915,7 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 		TimerHandle,
 		[this, TargetSlot, Interaction]()
 		{
-			UChildActorComponent* TargetChild = (TargetSlot == EWeaponSlot::Primary) ? PrimaryChild : HandgunChild;
+			UChildActorComponent* TargetChild = (TargetSlot == EEquipmentSlot::Primary) ? PrimaryChild : HandgunChild;
 			if (TargetChild)
 			{
 				if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(TargetChild->GetChildActor()))

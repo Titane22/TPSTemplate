@@ -5,14 +5,16 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Library/AnimationState.h"
+#include "Data/EquipmentTypes.h"
 #include "EquipmentSystem.generated.h"
 
+class UInventorySystem;
 class AMasterWeapon;
 class ATPSTemplateCharacter;
 class UWeaponData;
 
 UENUM(BlueprintType)
-enum class EWeaponSlot : uint8
+enum class EEquipmentSlot : uint8
 {
 	None        UMETA(DisplayName = "None"),      // 맨손 상태
 	Primary     UMETA(DisplayName = "Primary"),
@@ -37,7 +39,7 @@ public:
 
 	// 최적화된 새 API: 한 번의 호출로 무기 전환
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	void SwitchToWeapon(EWeaponSlot TargetSlot);
+	void SwitchToWeapon(EEquipmentSlot TargetSlot);
 
 	/**
 	 * 새 무기 픽업 및 장착
@@ -47,18 +49,30 @@ public:
 	 * @return 성공 여부
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
-	bool PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EWeaponSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass);
+	bool PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EEquipmentSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass);
 
 	// 레거시 API (하위 호환성을 위해 유지)
 	UFUNCTION()
-	void SetWeaponState(TSubclassOf<AMasterWeapon> ToSetWeaponClass, EAnimationState ToSetAnimation, EWeaponState CurWeaponState, FName ToSetEquipSocketName, FName ToSetUnequipSocketName, EWeaponSlot WeaponSlot = EWeaponSlot::Primary);
+	void SetWeaponState(EAnimationState ToSetAnimation, EEquipmentSlot WeaponSlot, EWeaponState WeaponState);
 
 	UFUNCTION()
-	void EquipWeapon(FName SocketName, EWeaponSlot WeaponSlot);
+	void EquipWeapon(FName SocketName, EEquipmentSlot WeaponSlot);
 
 	UFUNCTION()
-	void UnequipWeapon(FName SocketName, EWeaponSlot WeaponSlot);
+	void UnequipWeapon(FName SocketName, EEquipmentSlot WeaponSlot);
 
+	UFUNCTION()
+	void EquipFromInventory(FGuid InstanceID, EEquipmentSlot TargetSlot);
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	bool GetEquipmentSlot(EEquipmentSlot Slot, FEquipmentSlot& OutEquipSlot);
+
+	UFUNCTION()
+	void SetChildActorForSlot(EEquipmentSlot Slot, UChildActorComponent* ChildActor);
+
+	UFUNCTION()
+	UChildActorComponent* GetChildActorForSlot(EEquipmentSlot Slot);
+	
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -67,6 +81,9 @@ public:
 	UPROPERTY()
 	ATPSTemplateCharacter* CharacterRef;
 
+	UPROPERTY()
+	UInventorySystem* OwnerInventoryRef;
+	
 	// Blueprint에서 무기 클래스를 설정하세요 (Data-Driven)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
 	TSubclassOf<AMasterWeapon> PrimaryWeaponClass;
@@ -76,8 +93,16 @@ public:
 
 	// 현재 장착된 무기 슬롯 (None = 맨손)
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	EWeaponSlot CurrentEquippedSlot;
+	EEquipmentSlot CurrentEquippedSlot;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Default")
+	TMap<EEquipmentSlot, UWeaponData*> DefaultEquipments;
+
+	TMap<EEquipmentSlot, UChildActorComponent*> SlotToChildActor;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
+	TMap<EEquipmentSlot, FEquipmentSlot> Equipped;
+	
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AMasterWeapon> CurrentWeaponClass;

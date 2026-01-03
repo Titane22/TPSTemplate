@@ -98,38 +98,51 @@ void ATPSTemplateCharacter::BeginPlay()
 	// NOTE: PrimaryChild and HandgunChild Child Actor Class should be set in Blueprint
 	if (PrimaryChild && PrimaryChild->GetChildActor())
 	{
-		// Attach to back (storage state)
-		PrimaryChild->AttachToComponent(
-			GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			FName("RifleHost_Socket")
-		);
-
-		// Set WeaponSystem reference
-		if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+		EquipmentSystem->SetChildActorForSlot(EEquipmentSlot::Primary, PrimaryChild);
+		FEquipmentSlot EquipSlot;
+		if (EquipmentSystem->GetEquipmentSlot(EEquipmentSlot::Primary, EquipSlot))
 		{
-			if (PrimaryWeapon->WeaponSystem)
+			UItemData* ItemData = EquipSlot.ItemData.Get();
+			// Attach to back (storage state)
+			PrimaryChild->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				ItemData->UnequipSocketName
+			);
+
+			// Set WeaponSystem reference
+			if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
 			{
-				PrimaryWeapon->WeaponSystem->CharacterRef = this;
+				if (PrimaryWeapon->WeaponSystem)
+				{
+					PrimaryWeapon->WeaponSystem->CharacterRef = this;
+				}
 			}
 		}
 	}
 
 	if (HandgunChild && HandgunChild->GetChildActor())
 	{
-		// Attach to hand (default state)
-		HandgunChild->AttachToComponent(
-			GetMesh(),
-			FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-			FName("PistolHost_Socket")
-		);
-
-		// Set WeaponSystem reference
-		if (AMasterWeapon* HandgunWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
+		EquipmentSystem->SetChildActorForSlot(EEquipmentSlot::Handgun, HandgunChild);
+		FEquipmentSlot EquipSlot;
+		if (EquipmentSystem->GetEquipmentSlot(EEquipmentSlot::Handgun, EquipSlot))
 		{
-			if (HandgunWeapon->WeaponSystem)
+			UItemData* ItemData = EquipSlot.ItemData.Get();
+			
+			// Attach to hand (default state)
+			HandgunChild->AttachToComponent(
+				GetMesh(),
+				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+				ItemData->UnequipSocketName
+			);
+
+			// Set WeaponSystem reference
+			if (AMasterWeapon* HandgunWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
 			{
-				HandgunWeapon->WeaponSystem->CharacterRef = this;
+				if (HandgunWeapon->WeaponSystem)
+				{
+					HandgunWeapon->WeaponSystem->CharacterRef = this;
+				}
 			}
 		}
 	}

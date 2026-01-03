@@ -40,9 +40,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Details")
 	EWeaponType WeaponType;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon Details")
-	TSubclassOf<AMasterWeapon> WeaponClass;
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Fire Mode Data")
 	EFireMode FireMode;
 
@@ -69,7 +66,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
 	TSubclassOf<UW_DynamicWeaponHUD> WeaponUI;
 
-	// Animation
+	// Animation	
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Animation")
 	FVector LeftHandIKOffset;
 
