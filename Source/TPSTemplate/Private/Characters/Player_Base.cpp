@@ -103,6 +103,8 @@ void APlayer_Base::BeginPlay()
 			UE_LOG(LogTemp, Log, TEXT("Bound interaction event: %s"), *Interaction->GetName());
 		}
 	}
+
+	EquipmentSystem->OnEquipmentStateChanged.AddDynamic(this, &APlayer_Base::OnEquipped);
 }
 
 void APlayer_Base::Tick(float DeltaTime)
@@ -389,6 +391,16 @@ void APlayer_Base::ImpactOnLand()
 	}
 }
 
+void APlayer_Base::OnEquipped()
+{
+	if (!CurrentWeapon || !CurrentWeapon->WeaponData)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[OnEquipped] CurrentWeapon not ready yet"));
+		return;
+	}
+	
+}
+
 //////////////////////////////////////////////////////////////////////////
 // Weapon Functions
 
@@ -548,7 +560,12 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 	{
 		return;
 	}
-
+	if (!EquipmentSystem->IsEquipped(EEquipmentSlot::Primary))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("There is no Equipped Primary Weapon"));
+		return;
+	}
+	
 	bCanSwitchWeapon = false;
 
 	EquipmentSystem->SwitchToWeapon(EEquipmentSlot::Primary);
@@ -560,6 +577,7 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 			CurrentWeapon = Weapon;
 		}
 	}
+	
 	// 3. Wait for Child Actor to initialize and update UI
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -581,13 +599,13 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 
 	// Play Animation Montage
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-	UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("NULL"));
+	UE_LOG(LogTemp, Log, TEXT("[OnEquipped] AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("NULL"));
 
 	if (AnimInstance)
 	{
 		UAnimMontage* RifleEquipMontage = CurrentWeapon->WeaponData->WeaponEquipMontage;
 
-		UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] RifleEquipMontage: %s"),
+		UE_LOG(LogTemp, Log, TEXT("[OnEquipped] RifleEquipMontage: %s"),
 			RifleEquipMontage ? *RifleEquipMontage->GetName() : TEXT("NULL"));
 
 		if (RifleEquipMontage)
@@ -598,17 +616,17 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 			CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
 			AnimInstance->Montage_SetEndDelegate(CompleteDelegate, RifleEquipMontage);
 
-			UE_LOG(LogTemp, Log, TEXT("[SwitchToPrimaryWeapon] Montage delegate set successfully"));
+			UE_LOG(LogTemp, Log, TEXT("[OnEquipped] Montage delegate set successfully"));
 		}
 		else
 		{
-			UE_LOG(LogTemp, Error, TEXT("[SwitchToPrimaryWeapon] Failed to load RifleEquipMontage! Setting bCanSwitchWeapon = true"));
+			UE_LOG(LogTemp, Error, TEXT("[OnEquipped] Failed to load RifleEquipMontage! Setting bCanSwitchWeapon = true"));
 			bCanSwitchWeapon = true;  // 몽타주 로드 실패 시 즉시 복구
 		}
 	}
 	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("[SwitchToPrimaryWeapon] AnimInstance is NULL! Setting bCanSwitchWeapon = true"));
+		UE_LOG(LogTemp, Error, TEXT("[OnEquipped] AnimInstance is NULL! Setting bCanSwitchWeapon = true"));
 		bCanSwitchWeapon = true;  // AnimInstance 없으면 즉시 복구
 	}
 }
@@ -622,7 +640,11 @@ void APlayer_Base::SwitchToHandgunWeapon()
 	{
 		return;
 	}
-
+	if (!EquipmentSystem->IsEquipped(EEquipmentSlot::Handgun))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("There is no Equipped Handgun Weapon"));
+		return;
+	}
 	bCanSwitchWeapon = false;
 
 	EquipmentSystem->SwitchToWeapon(EEquipmentSlot::Handgun);
@@ -635,6 +657,7 @@ void APlayer_Base::SwitchToHandgunWeapon()
 			
 		}
 	}
+	
 	// 3. Wait for Child Actor to initialize and update UI
 	FTimerHandle TimerHandle;
 	GetWorld()->GetTimerManager().SetTimer(
@@ -654,17 +677,38 @@ void APlayer_Base::SwitchToHandgunWeapon()
 		false
 	);
 
+	// TODO: Move to OnEquipped Delegate Func
 	// Play Animation Montage
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	UE_LOG(LogTemp, Log, TEXT("[OnEquipped] AnimInstance: %s"), AnimInstance ? TEXT("Valid") : TEXT("NULL"));
+
 	if (AnimInstance)
 	{
-		UAnimMontage* PistolEquipMontage = CurrentWeapon->WeaponData->WeaponEquipMontage;
+		UAnimMontage* RifleEquipMontage = CurrentWeapon->WeaponData->WeaponEquipMontage;
 
-		AnimInstance->Montage_Play(PistolEquipMontage, 1.0f);
+		UE_LOG(LogTemp, Log, TEXT("[OnEquipped] RifleEquipMontage: %s"),
+			RifleEquipMontage ? *RifleEquipMontage->GetName() : TEXT("NULL"));
 
-		FOnMontageEnded CompleteDelegate;
-		CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
-		AnimInstance->Montage_SetEndDelegate(CompleteDelegate, PistolEquipMontage);
+		if (RifleEquipMontage)
+		{
+			AnimInstance->Montage_Play(RifleEquipMontage, 1.0f);
+
+			FOnMontageEnded CompleteDelegate;
+			CompleteDelegate.BindUObject(this, &APlayer_Base::OnMontageEnded);
+			AnimInstance->Montage_SetEndDelegate(CompleteDelegate, RifleEquipMontage);
+
+			UE_LOG(LogTemp, Log, TEXT("[OnEquipped] Montage delegate set successfully"));
+		}
+		else
+		{
+			UE_LOG(LogTemp, Error, TEXT("[OnEquipped] Failed to load RifleEquipMontage! Setting bCanSwitchWeapon = true"));
+			bCanSwitchWeapon = true;  // 몽타주 로드 실패 시 즉시 복구
+		}
+	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("[OnEquipped] AnimInstance is NULL! Setting bCanSwitchWeapon = true"));
+		bCanSwitchWeapon = true;  // AnimInstance 없으면 즉시 복구
 	}
 }
 
@@ -717,7 +761,7 @@ void APlayer_Base::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData* Current
 
 void APlayer_Base::Interact()
 {
-	// ✅ 새로운 Data-Driven 방식: Interactor가 모든 것을 처리!
+	// 새로운 Data-Driven 방식: Interactor가 모든 것을 처리!
 	if (!InteractorComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InteractorComponent is null!"));

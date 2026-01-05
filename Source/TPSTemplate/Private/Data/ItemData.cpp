@@ -27,3 +27,13 @@ bool UItemData::IsValid() const
 {
 	return !ItemName.IsEmpty();
 }
+
+bool UItemData::CanEquipToSlot(EEquipmentSlot Slot) const
+{
+	return ValidSlot == Slot;
+}
+
+bool UItemData::IsEquippable() const
+{
+	return ValidSlot != EEquipmentSlot::None;
+}

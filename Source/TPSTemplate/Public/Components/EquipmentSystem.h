@@ -14,19 +14,13 @@ class ATPSTemplateCharacter;
 class UWeaponData;
 
 UENUM(BlueprintType)
-enum class EEquipmentSlot : uint8
-{
-	None        UMETA(DisplayName = "None"),      // 맨손 상태
-	Primary     UMETA(DisplayName = "Primary"),
-	Handgun     UMETA(DisplayName = "Handgun")
-};
-
-UENUM(BlueprintType)
 enum class EWeaponState : uint8
 {
 	Equip       UMETA(DisplayName = "Equip"),
 	Unequip     UMETA(DisplayName = "Unequip")
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEquipmentStateChangedDelegate);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class TPSTEMPLATE_API UEquipmentSystem : public UActorComponent
@@ -37,6 +31,11 @@ public:
 	// Sets default values for this component's properties
 	UEquipmentSystem();
 
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	void Equip(EEquipmentSlot Slot, UItemData* ItemData);
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	UWeaponData* Unequip(EEquipmentSlot Slot);
 	// 최적화된 새 API: 한 번의 호출로 무기 전환
 	UFUNCTION(BlueprintCallable, Category = "Equipment")
 	void SwitchToWeapon(EEquipmentSlot TargetSlot);
@@ -52,9 +51,6 @@ public:
 	bool PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EEquipmentSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass);
 
 	// 레거시 API (하위 호환성을 위해 유지)
-	UFUNCTION()
-	void SetWeaponState(EAnimationState ToSetAnimation, EEquipmentSlot WeaponSlot, EWeaponState WeaponState);
-
 	UFUNCTION()
 	void EquipWeapon(FName SocketName, EEquipmentSlot WeaponSlot);
 
@@ -72,7 +68,9 @@ public:
 
 	UFUNCTION()
 	UChildActorComponent* GetChildActorForSlot(EEquipmentSlot Slot);
-	
+
+	UFUNCTION(BlueprintCallable, Category = "Equipment")
+	bool IsEquipped(EEquipmentSlot Slot);
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
@@ -102,7 +100,9 @@ public:
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
 	TMap<EEquipmentSlot, FEquipmentSlot> Equipped;
-	
+
+	UPROPERTY()
+	FOnEquipmentStateChangedDelegate OnEquipmentStateChanged;
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AMasterWeapon> CurrentWeaponClass;

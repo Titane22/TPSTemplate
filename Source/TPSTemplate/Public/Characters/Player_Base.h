@@ -93,6 +93,8 @@ protected:
 	UPROPERTY()
 	FTimeline ShoulderCameraTimeline;
 
+	
+protected:
 	// Input Handling Functions
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -122,6 +124,8 @@ protected:
 	UFUNCTION()
 	void ImpactOnLand();
 
+	UFUNCTION()
+	void OnEquipped();
 public:
 	APlayer_Base();
 

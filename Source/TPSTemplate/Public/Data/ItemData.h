@@ -7,6 +7,18 @@
 #include "ItemData.generated.h"
 
 class AEquipmentBase;
+
+/**
+ * Equipment slot types
+ */
+UENUM(BlueprintType)
+enum class EEquipmentSlot : uint8
+{
+	None        UMETA(DisplayName = "None"),      // 맨손 상태
+	Primary     UMETA(DisplayName = "Primary"),
+	Handgun     UMETA(DisplayName = "Handgun")
+};
+
 /**
  * Item rarity levels
  */
@@ -84,6 +96,9 @@ public:
 	// Properties
 	//==============================================================================
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Equipment")
+	EEquipmentSlot ValidSlot;
+	
 	/** Item rarity/quality level */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item|Properties")
 	EItemRarity Rarity;
@@ -103,4 +118,10 @@ public:
 	/** Check if the item is valid for use */
 	UFUNCTION(BlueprintPure, Category = "Item")
 	virtual bool IsValid() const;
+
+	UFUNCTION(BlueprintPure, Category= "Item|Equipment")
+	virtual bool CanEquipToSlot(EEquipmentSlot Slot) const;
+
+	UFUNCTION(BlueprintPure, Category= "Item|Equipment")
+	virtual bool IsEquippable() const;
 };

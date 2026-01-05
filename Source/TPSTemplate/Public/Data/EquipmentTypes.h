@@ -9,6 +9,7 @@
  * Holds reference to ItemData and instance-specific properties
  */
 
+// Forward declarations
 class AEquipmentBase;
 
 USTRUCT(BlueprintType)
@@ -21,5 +22,7 @@ struct FEquipmentSlot
 	
 	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
 	TSoftObjectPtr<UItemData> ItemData;
-	
+
+	UPROPERTY(BlueprintReadOnly, Category = "Equipment")
+	EEquipmentSlot Slot;
 };

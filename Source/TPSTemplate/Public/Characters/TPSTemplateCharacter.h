@@ -164,6 +164,9 @@ public:
 public:
 	ATPSTemplateCharacter();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	TMap<EEquipmentSlot, UChildActorComponent*> EquippedChilds;
+	
 	// Weapon Child Actor Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	UChildActorComponent* PrimaryChild;
@@ -206,6 +209,8 @@ public:
 
 	virtual EEquipmentSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EEquipmentSlot::None; }
 
+	virtual void SetupEquipChildActor(EEquipmentSlot Slot);
+	
 	// Core Action Functions (Callable by AI or Player)
 	void StartAim();
 	void StopAim();

@@ -15,6 +15,96 @@ UEquipmentSystem::UEquipmentSystem()
 	CurrentEquippedSlot = EEquipmentSlot::None;
 }
 
+void UEquipmentSystem::Equip(EEquipmentSlot Slot, UItemData* ItemData)
+{
+	if (!ItemData || !CharacterRef)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Equip] - Item Data or CharacterRef is NULL"));
+		return;
+	}
+	FEquipmentSlot EquipSlot;
+	EquipSlot.ItemData = ItemData;
+	EquipSlot.EquipmentClass = ItemData->EquipmentClass;
+	EquipSlot.Slot = Slot;
+	
+	// 1. 타겟 Child Actor 찾기
+	UChildActorComponent** TargetChildPtr = CharacterRef->EquippedChilds.Find(Slot);
+	if (!TargetChildPtr || !*TargetChildPtr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Equip] - Target Child is NULL for slot %d"), (int32)Slot);
+		return;
+	}
+
+	UChildActorComponent* TargetChild = *TargetChildPtr;
+	// 2. 타겟 Child Actor에 등록하기
+	SetChildActorForSlot(Slot, TargetChild);
+	if (!TargetChild->GetChildActor() && EquipSlot.EquipmentClass)
+	{
+		TargetChild->SetChildActorClass(EquipSlot.EquipmentClass);
+		TargetChild->CreateChildActor();
+	}
+	// 3. 타겟 Child Actor에 붙이기
+	if (!CharacterRef->GetMesh())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Equip] - Character's Mesh is NULL"));
+		return;
+	}
+	// Attach to back (storage state)
+	TargetChild->AttachToComponent(
+		CharacterRef->GetMesh(),
+		FAttachmentTransformRules::SnapToTargetNotIncludingScale,
+		ItemData->UnequipSocketName
+	);
+
+	// Set WeaponSystem reference
+	if (AMasterWeapon* Weapon = Cast<AMasterWeapon>(TargetChild->GetChildActor()))
+	{
+		if (Weapon->WeaponSystem)
+		{
+			Weapon->WeaponSystem->CharacterRef = CharacterRef;
+		}
+	}
+	Equipped.Emplace(Slot, EquipSlot);
+}
+
+UWeaponData* UEquipmentSystem::Unequip(EEquipmentSlot Slot)
+{
+	FEquipmentSlot* EquipSlot = Equipped.Find(Slot);
+	if (!EquipSlot || EquipSlot->ItemData.IsNull())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[Unequip] No equipment in slot %d"), (int32)Slot);
+		return nullptr;
+	}
+	
+	UWeaponData* WeaponData = Cast<UWeaponData>(EquipSlot->ItemData.Get());
+	if (!WeaponData)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[Unequip] ItemData is not WeaponData"));
+		return nullptr;
+	}
+
+	UChildActorComponent* TargetChild = GetChildActorForSlot(Slot);
+	if (TargetChild && TargetChild->GetChildActor())
+	{
+		AMasterWeapon* Weapon = Cast<AMasterWeapon>(TargetChild->GetChildActor());
+		if (Weapon)
+			Weapon->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
+		TargetChild->DestroyChildActor();
+	}
+
+	Equipped.Remove(Slot);
+	if (CurrentEquippedSlot == Slot)
+	{
+		CurrentEquippedSlot = EEquipmentSlot::None;
+		if (CharacterRef)
+		{
+			CharacterRef->CurrentAnimationState = EAnimationState::Unarmed;
+		}
+	}
+	
+	return WeaponData;
+}
+
 void UEquipmentSystem::BeginPlay()
 {
 	Super::BeginPlay();
@@ -33,53 +123,11 @@ void UEquipmentSystem::BeginPlay()
 		FEquipmentSlot EquipmentSlot;
 		EquipmentSlot.ItemData = ItemData;
 		EquipmentSlot.EquipmentClass = ItemData->EquipmentClass;
-
+		EquipmentSlot.Slot = Slot;
+		
 		Equipped.Add(Slot, EquipmentSlot);
 		UE_LOG(LogTemp, Log, TEXT("[EquipmentSystem] Initialized slot %d with %s"),
 			  (int32)Slot, *ItemData->ItemName.ToString());
-	}
-}
-
-void UEquipmentSystem::SetWeaponState(EAnimationState ToSetAnimation, EEquipmentSlot WeaponSlot, EWeaponState WeaponState)
-{
-	if (!CharacterRef)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UEquipmentSystem::SetWeaponState - CharacterRef is null"));
-		return;
-	}
-
-	FEquipmentSlot* EquipSlot = Equipped.Find(WeaponSlot);
-	if (!EquipSlot || EquipSlot->ItemData.IsNull())
-	{
-		UE_LOG(LogTemp, Error, TEXT("UEquipmentSystem::SetWeaponState - EquipSlot is null"));
-		return;
-	}
-	TSubclassOf<AEquipmentBase> ToSetWeaponClass = EquipSlot->EquipmentClass;
-	UWeaponData* WeaponData = Cast<UWeaponData>(EquipSlot->ItemData.Get());
-	if (!ToSetWeaponClass || !WeaponData)
-	{
-		UE_LOG(LogTemp, Error, TEXT("UEquipmentSystem::SetWeaponState - ToSetWeaponClass or WeaponData is null"));
-		return;
-	}
-	FName SocketName = WeaponState == EWeaponState::Equip ? WeaponData->EquipSocketName : WeaponData->UnequipSocketName;
-
-	if (SocketName.IsNone())
-	{
-		UE_LOG(LogTemp, Error, TEXT("UEquipmentSystem::SetWeaponState - SocketName is NONE"));
-		return;
-	}
-	
-	CurrentWeaponClass = ToSetWeaponClass;
-	AnimationState = ToSetAnimation;
-
-	switch (WeaponState)
-	{
-	case EWeaponState::Equip:
-		EquipWeapon(SocketName, WeaponSlot);
-		break;
-	case EWeaponState::Unequip:
-		UnequipWeapon(SocketName, WeaponSlot);
-		break;
 	}
 }
 
@@ -161,20 +209,7 @@ void UEquipmentSystem::SwitchToWeapon(EEquipmentSlot TargetSlot)
 		UChildActorComponent* CurrentChild = GetChildActorForSlot(CurrentEquippedSlot);
 
 		FName HolsterSocket = ItemData->UnequipSocketName;
-
-		if (CurrentChild && CurrentChild->GetChildActor())
-		{
-			CurrentChild->AttachToComponent(
-				CharacterRef->GetMesh(),
-				FAttachmentTransformRules(
-					EAttachmentRule::SnapToTarget,
-					EAttachmentRule::SnapToTarget,
-					EAttachmentRule::SnapToTarget,
-					true
-				),
-				HolsterSocket
-			);
-		}
+		UnequipWeapon(HolsterSocket, CurrentEquippedSlot);
 	}
 
 	// 2. 새 무기를 손에 장착
@@ -202,6 +237,7 @@ void UEquipmentSystem::SwitchToWeapon(EEquipmentSlot TargetSlot)
 			? EAnimationState::RifleShotgun
 			: EAnimationState::Pistol;
 
+		EquipWeapon(HandSocket, TargetSlot);
 		if (TargetChild && TargetChild->GetChildActor())
 		{
 			TargetChild->AttachToComponent(
@@ -226,7 +262,7 @@ void UEquipmentSystem::SwitchToWeapon(EEquipmentSlot TargetSlot)
 
 	// 3. 상태 업데이트
 	CurrentEquippedSlot = TargetSlot;
-
+	//OnEquipmentStateChanged.Broadcast();
 	UE_LOG(LogTemp, Log, TEXT("Switched to weapon slot: %d"), (int32)TargetSlot);
 }
 
@@ -265,7 +301,7 @@ void UEquipmentSystem::UnequipWeapon(FName SocketName, EEquipmentSlot WeaponSlot
 		),
 		SocketName
 	);
-
+	//OnEquipmentStateChanged.Broadcast();
 	CharacterRef->CurrentAnimationState = AnimationState;
 }
 
@@ -329,7 +365,14 @@ void UEquipmentSystem::SetChildActorForSlot(EEquipmentSlot Slot, UChildActorComp
 UChildActorComponent* UEquipmentSystem::GetChildActorForSlot(EEquipmentSlot Slot)
 {
 	UChildActorComponent** Found = SlotToChildActor.Find(Slot);
-	return *Found;
+	return Found ? *Found : nullptr;
+}
+
+bool UEquipmentSystem::IsEquipped(EEquipmentSlot Slot)
+{
+	if (Equipped.Contains(Slot))
+		return true;
+	return false;
 }
 
 bool UEquipmentSystem::PickupAndEquipWeapon(TSubclassOf<AMasterWeapon> NewWeaponClass, EEquipmentSlot TargetSlot, TSubclassOf<AMasterWeapon>& OutDroppedWeaponClass)

@@ -62,6 +62,9 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	Handgun->SetupAttachment(RootComponent);
 	PrimaryChild->SetupAttachment(Primary);
 	HandgunChild->SetupAttachment(Handgun);
+
+	EquippedChilds.Add(EEquipmentSlot::Primary, PrimaryChild);
+	EquippedChilds.Add(EEquipmentSlot::Handgun, HandgunChild);
 }
 
 void ATPSTemplateCharacter::BeginPlay()
@@ -240,6 +243,15 @@ void ATPSTemplateCharacter::Tick(float DeltaTime)
 
 //////////////////////////////////////////////////////////////////////////
 // Aim Actions
+
+void ATPSTemplateCharacter::SetupEquipChildActor(EEquipmentSlot Slot)
+{
+	if (!EquippedChilds.Contains(Slot))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("[SetupEquipChildActor] Equipped Child Actor is Null in EquippedChilds"));
+		return;
+	}
+}
 
 void ATPSTemplateCharacter::StartAim()
 {
