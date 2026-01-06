@@ -25,46 +25,51 @@ void UHealthSystem::BeginPlay()
 		return;
 	
 	CharacterRef = Owner;
+	CurrentHealth = MaxHealth;
 
-	// Sequence 2
-	if (StartWithMaxHealth)
-	{
-		Health = MaxHealth;
-	}
+}
+
+bool UHealthSystem::IsDead() const
+{
+	return CurrentHealth <= 0;
 }
 
 bool UHealthSystem::ApplyDamage(float Damage)
 {
-	Health = Health - Damage;
-	//GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Red, TEXT("Hit!!!!"));
-	if (Health <= 0)
+	if (IsDead())
+		return true;
+
+	float OldHealth = CurrentHealth;
+	CurrentHealth = FMath::Clamp(CurrentHealth - Damage, 0.f, MaxHealth);
+
+	float ActualHealth = OldHealth - CurrentHealth;
+	OnHealthChanged.Broadcast(ActualHealth, Damage);
+
+	if (IsDead())
 	{
-		CharacterRef->StartRagdoll();
-
-		CharacterRef->Die();
-
+		OnDeath.Broadcast();
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+	return false;
 }
 
 bool UHealthSystem::Heal(float HealAmount)
 {
-	Health = Health + HealAmount;
+	if (IsDead())
+		return false;
+	CurrentHealth = FMath::Clamp(CurrentHealth + HealAmount, 0.f, MaxHealth);
+	OnHealthChanged.Broadcast(CurrentHealth, -HealAmount);
 	return true;
 }
 
 float UHealthSystem::GetCurrentHealth()
 {
-	return Health;
+	return CurrentHealth;
 }
 
 void UHealthSystem::SetCurrentHealth(float Value)
 {
-	Health = Value;
+	CurrentHealth = Value;
 }
 
 float UHealthSystem::GetMaxHealth()

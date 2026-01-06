@@ -6,10 +6,12 @@
 #include "Components/EquipmentSystem.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
+#include "Interfaces/Damageable.h"
 #include "Library/AnimationState.h"
 #include "Logging/LogMacros.h"
 #include "TPSTemplateCharacter.generated.h"
 
+class UHurtbox;
 class UInventorySystem;
 class UHealthSystem;
 class UInteractor;
@@ -44,7 +46,7 @@ struct FDodgeMontages
  * Player-specific features are in APlayer_Base
  */
 UCLASS(config=Game)
-class ATPSTemplateCharacter : public ACharacter
+class ATPSTemplateCharacter : public ACharacter, public IDamageable
 {
 	GENERATED_BODY()
 
@@ -68,6 +70,9 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UInteractor* InteractorComponent;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UHurtbox* Hurtbox;
 
 	// Timelines
 	UPROPERTY()
@@ -182,10 +187,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement")
 	bool bIsDead = false;
 
-	// Death and Ragdoll
-	UFUNCTION()
-	void Die();
-
 	UFUNCTION()
 	void StartRagdoll();
 
@@ -218,7 +219,17 @@ public:
 	void StopCrouch();
 	void PerformDodge(float ForwardInput, float RightInput);
 
+	virtual float TakeDamage_Implementation(float DamageAmount, const FDamageEvent& DamageEvent,
+	                                        const FName HitBoneName, AController* EventInstigator, AActor* DamageCauser) override;
+
+	virtual bool IsDead_Implementation() const override;
 protected:
 	virtual void BeginPlay();
 	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION()
+	void OnDeath();
+
+	UFUNCTION()
+	void OnHealthChanged(float NewHealth, float Damage);
 };

@@ -6,6 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "HealthSystem.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnHealthChanged, float, NewHealth, float, Damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
+
 class ATPSTemplateCharacter;
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
@@ -20,17 +23,25 @@ public:
 protected:
 	// Called when the game starts
 	virtual void BeginPlay() override;
-
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Health")
 	float MaxHealth = 500.0f;
 
-	float Health;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Health")
+	float CurrentHealth;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category="Health")
 	bool StartWithMaxHealth;
 
 public:
 	UPROPERTY()
 	ATPSTemplateCharacter* CharacterRef;
 
+public:
+	UFUNCTION(BlueprintCallable, Category = "Health")
+	bool IsDead() const;
+	
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	bool ApplyDamage(float Damage);
 
@@ -48,4 +59,12 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Health")
 	void SetMaxHealth(float Value);
+
+	// BlueprintAssignable로 BP에서도 바인딩 가능
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnHealthChanged OnHealthChanged;
+
+	// BlueprintAssignable로 BP에서도 바인딩 가능
+	UPROPERTY(BlueprintAssignable, Category="Health")
+	FOnDeath OnDeath;
 };

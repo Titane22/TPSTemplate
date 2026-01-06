@@ -11,8 +11,12 @@
 #include "Library/AnimationState.h"
 #include "Controller/ShooterPlayerController.h"
 #include "Blueprint/UserWidget.h"
+#include "Camera/CameraComponent.h"
+#include "Components/Hurtbox.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Widget/W_DynamicWeaponHUD.h"
+#include "Interfaces/Damageable.h"
+#include "Engine/DamageEvents.h"
 
 // Sets default values
 AMasterWeapon::AMasterWeapon()
@@ -70,6 +74,11 @@ void AMasterWeapon::BeginPlay()
 
 void AMasterWeapon::FireBullet(FHitResult Hit, bool bReturnHit)
 {
+    // ===== 디버그 로그 추가 =====
+    UE_LOG(LogTemp, Warning, TEXT("[FireBullet] Hit.Location: %s, bBlockingHit: %d"),
+        *Hit.Location.ToString(), Hit.bBlockingHit);
+    // ===========================
+
     for (int32 curBurst = 0; curBurst < WeaponData->BurstAmount; curBurst++)
     {
         float PointX, PointY;
@@ -83,6 +92,11 @@ void AMasterWeapon::FireBullet(FHitResult Hit, bool bReturnHit)
         }
         FVector SpreadAdjustedHitLocation = Hit.Location + CameraManager->GetActorRightVector() * PointX + CameraManager->GetActorUpVector() * PointY;
         FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
+
+        // ===== 디버그 로그 추가 =====
+        UE_LOG(LogTemp, Warning, TEXT("[FireBullet] MuzzleLocation: %s"), *MuzzleLocation.ToString());
+        UE_LOG(LogTemp, Warning, TEXT("[FireBullet] SpreadAdjustedHitLocation: %s"), *SpreadAdjustedHitLocation.ToString());
+        // ===========================
         // BulletDirection represents the direction from the muzzle to the target.
         // Calculate the direction vector of the trajectory 
         // by subtracting the aim point position from the muzzle position.
@@ -104,24 +118,26 @@ void AMasterWeapon::FireBullet(FHitResult Hit, bool bReturnHit)
             return;
         }
         QueryParams.AddIgnoredActor(Cast<AActor>(WeaponSystem->CharacterRef));
-        
-        //DrawDebugLine(
-        //    GetWorld(),           // 월드
-        //    MuzzleLocation,        // 시작점
-        //    MuzzleLocation + (BulletDirection * -5.0f),          // 끝점
-        //    FColor::Yellow,       // 라인 색상
-        //    false,               // 지속적으로 그릴지 여부
-        //    5.0f,                // 지속 시간 (초)
-        //    0,                   // 우선순위
-        //    1.0f                 // 두께
-        //);
+
+        // ===== 디버그 라인 활성화 =====
+        // DrawDebugLine(
+        //     GetWorld(),           // 월드
+        //     MuzzleLocation,        // 시작점
+        //     MuzzleLocation + (BulletDirection * -5.0f),          // 끝점
+        //     FColor::Yellow,       // 라인 색상
+        //     false,               // 지속적으로 그릴지 여부
+        //     5.0f,                // 지속 시간 (초)
+        //     0,                   // 우선순위
+        //     2.0f                 // 두께
+        // );
+        // ==============================
         // Perform line trace
         FHitResult HitResult;
         bool bHit = GetWorld()->LineTraceSingleByChannel(
             HitResult,
             MuzzleLocation,
             MuzzleLocation + (BulletDirection * -5.0f),
-            ECollisionChannel::ECC_Visibility,
+            COLLISION_BULLET,
             QueryParams
         );
         if (!bHit)
@@ -151,11 +167,12 @@ void AMasterWeapon::FireBullet(FHitResult Hit, bool bReturnHit)
                 // HitMarker
                 if (WeaponData && WeaponData->HitMarkerUI)
                 {
-                    UUserWidget* UIHitMarker = CreateWidget<UUserWidget>(GetWorld()->GetFirstPlayerController(), WeaponData->HitMarkerUI);
-                    if (UIHitMarker)
-                    {
-                        UIHitMarker->AddToViewport();
-                    }
+                    // TODO: Hit Marker
+                    // UUserWidget* UIHitMarker = CreateWidget<UUserWidget>(GetWorld()->GetFirstPlayerController(), WeaponData->HitMarkerUI);
+                    // if (UIHitMarker)
+                    // {
+                    //     UIHitMarker->AddToViewport();
+                    // }
                 }
             }
             if (bKilledPlayer)
@@ -284,41 +301,22 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
         ValidHit = false;
         return false;
     }
-    // Hit된 액터에서 ActorComponent를 찾음
-    UActorComponent* HitReceiverComponent = nullptr;
-    if (!HitReceiverComponent)
-    {
-        //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
-        ATPSTemplateCharacter* Player = Cast<ATPSTemplateCharacter>(HitActor);
-        if (!Player)
-        {
-            //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("!Player")));
-            // Apply Damage Inner
-            UGameplayStatics::ApplyDamage(
-                HitActor,                    // Damaged Actor
-                WeaponData->Damage,        // Base Damage
-                GetInstigatorController(), // Event Instigator
-                this,                      // Damage Causer
-                nullptr                    // Damage Type Class
-            );
-            ValidHit = false;
-            return false;
-        }
-        //UGameplayStatics::ApplyDamage(
-        //    Player,                    // Damaged Actor
-        //    WeaponData->Damage,        // Base Damage
-        //    GetInstigatorController(), // Event Instigator
-        //    this,                      // Damage Causer
-        //    nullptr                    // Damage Type Class
-        //);
+    
+    bool bIsDead = false;
 
-        GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Player->Dead: %d"), Player->bIsDead));
-        if (!Player->bIsDead)
+    if (HitActor->Implements<UDamageable>())
+    {
+        FDamageEvent DamageEvent;
+        float ActualDamage = IDamageable::Execute_TakeDamage(
+            HitActor,
+            WeaponData->Damage,
+            DamageEvent,
+            HitResult.BoneName,
+            GetInstigatorController(),
+            this
+        );
+        if (ActualDamage > 0.0f)
         {
-            //GEngine->AddOnScreenDebugMessage(-1, 1.0f, FColor::Yellow, FString::Printf(TEXT("Hit Actor!!!!!!: %s"), *HitActor->GetName()));
-            // Apply Damage
-            Player->GetHealthComponent()->ApplyDamage(WeaponData->Damage);
-            // Play Sound 2D
             if (WeaponData && WeaponData->HitMarkerSound)
             {
                 UGameplayStatics::PlaySound2D(
@@ -333,31 +331,25 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
                 );
             }
             ValidHit = true;
-            return ValidHit;
         }
-        // Component가 있는지 확인
-        ValidHit = false;
-        return ValidHit;
-    }
-    else
-    {
-        // Play Sound 2D
-        if (WeaponData && WeaponData->HitMarkerSound)
+        bIsDead = IDamageable::Execute_IsDead(HitActor);
+        if (bIsDead)
         {
+            // TODO: Kill Sound?
             UGameplayStatics::PlaySound2D(
-                this,                       // WorldContextObject
-                WeaponData->HitMarkerSound, // Sound
-                1.0f,                       // Volume Multiplier
-                1.0f,                       // Pitch Multiplier
-                0.0f,                       // Start Time
-                nullptr,                    // Concurrency Settings
-                nullptr,                    // Owning Actor
-                true                        // Is UI Sound
+                    this,                       // WorldContextObject
+                    WeaponData->KillSound,      // Sound
+                    1.0f,                       // Volume Multiplier
+                    1.0f,                       // Pitch Multiplier
+                    0.0f,                       // Start Time
+                    nullptr,                    // Concurrency Settings
+                    nullptr,                    // Owning Actor
+                    true                        // Is UI Sound
             );
         }
-        ValidHit = true;
-        return false;
     }
+    
+    return bIsDead;
 }
 
 void AMasterWeapon::ApplyCameraShake(APlayerController* PC)
@@ -378,10 +370,15 @@ bool AMasterWeapon::PerformCameraTrace(APlayerCameraManager* CameraManager, FHit
     if (!CameraManager || !WeaponData)
         return false;
 
-    FVector StartLocation = CameraManager->GetCameraLocation();
-    FVector ForwardVector = CameraManager->GetActorForwardVector();
+    UCameraComponent* Cam = WeaponSystem->CharacterRef->FindComponentByClass<UCameraComponent>();
+    if (!Cam)
+        return false;
+    
+    FVector StartLocation = Cam->GetComponentLocation();
+    FVector ForwardVector = Cam->GetForwardVector();
     FVector EndLocation = StartLocation + (ForwardVector * WeaponData->MaxRange);
-
+    UE_LOG(LogTemp, Warning, TEXT("[PerformCameraTrace] StartLocation: %s, ForwardVector: %s, EndLocation: %s"),
+                *StartLocation.ToString(), *ForwardVector.ToString(), *EndLocation.ToString());
     FCollisionQueryParams QueryParams;
     QueryParams.AddIgnoredActor(this);
 
@@ -398,22 +395,32 @@ void AMasterWeapon::ExecuteFireSequence(const FHitResult& CameraHitResult)
 {
     FVector MuzzleLocation = WeaponMesh->GetSocketLocation(FName("Muzzle"));
     FVector DirectionToTarget = MuzzleLocation - CameraHitResult.Location;
-
+    
     // Perform muzzle trace
     FCollisionQueryParams QueryParams;
     QueryParams.AddIgnoredActor(this);
-
+    
+    // DrawDebugLine(
+    //     GetWorld(),           // 월드
+    //     MuzzleLocation,        // 시작점
+    //     MuzzleLocation + (DirectionToTarget * -500.0f),          // 끝점
+    //     FColor::Yellow,       // 라인 색상
+    //     false,               // 지속적으로 그릴지 여부
+    //     5.0f,                // 지속 시간 (초)
+    //     0,                   // 우선순위
+    //     2.0f                 // 두께
+    // );
     FHitResult MuzzleHitResult;
     bool bMuzzleHit = GetWorld()->LineTraceSingleByChannel(
         MuzzleHitResult,
         MuzzleLocation,
         MuzzleLocation + (DirectionToTarget * -500.0f),
-        ECollisionChannel::ECC_Visibility,
+        COLLISION_BULLET,
         QueryParams
     );
 
     FireFX();
-    FireBullet(MuzzleHitResult, bMuzzleHit);
+    FireBullet(CameraHitResult, false);
 }
 
 void AMasterWeapon::Fire()

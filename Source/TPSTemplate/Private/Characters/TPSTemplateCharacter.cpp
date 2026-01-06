@@ -4,8 +4,10 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/EquipmentSystem.h"
 #include "Components/HealthSystem.h"
+#include "Components/Hurtbox.h"
 #include "Components/InventorySystem.h"
 #include "Components/WeaponSystem.h"
+#include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Weapon/Interactor.h"
 #include "Weapon/Interaction.h"
@@ -56,6 +58,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthSystem>(TEXT("HealthComponent"));
 	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
 	InventorySystem = CreateDefaultSubobject<UInventorySystem>(TEXT("Inventory System"));
+	Hurtbox = CreateDefaultSubobject<UHurtbox>(TEXT("Hurtbox"));
 
 	// Component Hierarchy Setup
 	Primary->SetupAttachment(RootComponent);
@@ -149,46 +152,11 @@ void ATPSTemplateCharacter::BeginPlay()
 			}
 		}
 	}
-}
 
-void ATPSTemplateCharacter::Die()
-{
-	if (bIsDead)
-		return;
-
-	FVector InteractionActorLocation = GetCapsuleComponent()->GetComponentLocation();
-
-	FTransform InteractionSpawnTransform;
-	InteractionSpawnTransform.SetLocation(FVector(InteractionActorLocation.X, InteractionActorLocation.Y, InteractionActorLocation.Z + 20.0f));
-	InteractionSpawnTransform.SetRotation(FQuat::Identity);
-	InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
-
-	bIsDead = true;
-	InteractorComponent->DestroyComponent();
-
-	if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+	if (HealthComponent)
 	{
-		GetWorld()->SpawnActor<AActor>(PrimaryWeapon->WeaponPickupClass, InteractionSpawnTransform);
-	}
-
-	if (AMasterWeapon* HandgunWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
-	{
-		GetWorld()->SpawnActor<AActor>(HandgunWeapon->WeaponPickupClass, InteractionSpawnTransform);
-	}
-
-	// 1. Disable capsule collision and enable ragdoll physics
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetMesh()->SetSimulatePhysics(true);
-
-	// 2. Disable character movement
-	GetCharacterMovement()->DisableMovement();
-	GetCharacterMovement()->StopMovementImmediately();
-
-	// 3. Detach controller from character
-	if (AController* CharacterController = GetController())
-	{
-		CharacterController->UnPossess();
+		HealthComponent->OnDeath.AddDynamic(this, &ATPSTemplateCharacter::OnDeath);
+		HealthComponent->OnHealthChanged.AddDynamic(this, &ATPSTemplateCharacter::OnHealthChanged);
 	}
 }
 
@@ -239,6 +207,52 @@ void ATPSTemplateCharacter::Tick(float DeltaTime)
 
 	AimTimeline.TickTimeline(DeltaTime);
 	CrouchTimeline.TickTimeline(DeltaTime);
+}
+
+void ATPSTemplateCharacter::OnDeath()
+{
+	if (bIsDead)
+		return;
+
+	FVector InteractionActorLocation = GetCapsuleComponent()->GetComponentLocation();
+
+	FTransform InteractionSpawnTransform;
+	InteractionSpawnTransform.SetLocation(FVector(InteractionActorLocation.X, InteractionActorLocation.Y, InteractionActorLocation.Z + 20.0f));
+	InteractionSpawnTransform.SetRotation(FQuat::Identity);
+	InteractionSpawnTransform.SetScale3D(FVector(1.0f, 1.0f, 1.0f));
+
+	bIsDead = true;
+	InteractorComponent->DestroyComponent();
+
+	if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+	{
+		GetWorld()->SpawnActor<AActor>(PrimaryWeapon->WeaponPickupClass, InteractionSpawnTransform);
+	}
+
+	if (AMasterWeapon* HandgunWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
+	{
+		GetWorld()->SpawnActor<AActor>(HandgunWeapon->WeaponPickupClass, InteractionSpawnTransform);
+	}
+
+	// 1. Disable capsule collision and enable ragdoll physics
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	GetMesh()->SetSimulatePhysics(true);
+
+	// 2. Disable character movement
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->StopMovementImmediately();
+
+	// 3. Detach controller from character
+	if (AController* CharacterController = GetController())
+	{
+		CharacterController->UnPossess();
+	}
+}
+
+void ATPSTemplateCharacter::OnHealthChanged(float NewHealth, float Damage)
+{
+	// TODO: Hit Reaction
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -359,6 +373,27 @@ void ATPSTemplateCharacter::PerformDodge(float ForwardInput, float RightInput)
 	{
 		PlayDodgeMontageInternal(Montage);
 	}
+}
+
+float ATPSTemplateCharacter::TakeDamage_Implementation(float DamageAmount, const FDamageEvent& DamageEvent,
+                                                       const FName HitBoneName, AController* EventInstigator, AActor* DamageCauser)
+{
+    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor"));
+	if (!HealthComponent || !Hurtbox)
+		return 0.f;
+    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor2222222"));
+	
+	float Multiplier = Hurtbox->GetDamageMultiplier(HitBoneName);
+	float ModifiedDamage = DamageAmount * Multiplier;
+
+	HealthComponent->ApplyDamage(ModifiedDamage);
+	
+	return ModifiedDamage;
+}
+
+bool ATPSTemplateCharacter::IsDead_Implementation() const
+{
+	return HealthComponent && HealthComponent->IsDead();
 }
 
 void ATPSTemplateCharacter::PlayDodgeMontageInternal(UAnimMontage* MontageToPlay)

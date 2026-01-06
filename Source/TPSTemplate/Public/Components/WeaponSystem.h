@@ -10,6 +10,8 @@
 #include "NiagaraComponent.h"
 #include "WeaponSystem.generated.h"
 
+#define COLLISION_BULLET ECollisionChannel::ECC_GameTraceChannel1
+
 class USkeletalMesh;
 class AMasterWeapon;
 class ATPSTemplateCharacter;
