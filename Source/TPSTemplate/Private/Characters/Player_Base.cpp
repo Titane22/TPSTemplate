@@ -162,6 +162,7 @@ void APlayer_Base::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		// Camera
 		EnhancedInputComponent->BindAction(CameraChangeAction, ETriggerEvent::Started, this, &APlayer_Base::FlipFlapCameraChange);
+		EnhancedInputComponent->BindAction(FlashlightAction, ETriggerEvent::Triggered, this, &APlayer_Base::FlashOnOff);
 
 		// Interaction
 		EnhancedInputComponent->BindAction(InteractionAction, ETriggerEvent::Triggered, this, &APlayer_Base::Interact);

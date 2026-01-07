@@ -85,6 +85,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
 	UInputAction* CameraChangeAction;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Input, meta = (AllowPrivateAccess = "true"))
+	UInputAction* FlashlightAction;
+	
 	// Player-specific Components
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UMantleSystem* MantleComponent;
@@ -107,7 +110,7 @@ protected:
 	void Dodge();
 	void Jumping();
 	void FlipFlapCameraChange();
-
+	
 	// Timeline Update Functions (Virtual overrides from base class)
 	virtual void UpdateAimTimeline(float Value) override;
 	virtual void UpdateCrouchTimeline(float Value) override;

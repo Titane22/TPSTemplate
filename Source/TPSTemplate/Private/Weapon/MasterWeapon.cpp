@@ -306,7 +306,13 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
 
     if (HitActor->Implements<UDamageable>())
     {
-        FDamageEvent DamageEvent;
+        FPointDamageEvent DamageEvent(
+              WeaponData->Damage,           // Damage
+              HitResult,                    // HitInfo
+              -HitResult.ImpactNormal,      // ShotDirection (총알 방향)
+              nullptr                       // DamageTypeClass
+          );
+        
         float ActualDamage = IDamageable::Execute_TakeDamage(
             HitActor,
             WeaponData->Damage,
@@ -315,7 +321,8 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
             GetInstigatorController(),
             this
         );
-        if (ActualDamage > 0.0f)
+        ValidHit = ActualDamage > 0.0f;
+        if (ValidHit)
         {
             if (WeaponData && WeaponData->HitMarkerSound)
             {
@@ -330,23 +337,8 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
                     true                        // Is UI Sound
                 );
             }
-            ValidHit = true;
         }
         bIsDead = IDamageable::Execute_IsDead(HitActor);
-        if (bIsDead)
-        {
-            // TODO: Kill Sound?
-            UGameplayStatics::PlaySound2D(
-                    this,                       // WorldContextObject
-                    WeaponData->KillSound,      // Sound
-                    1.0f,                       // Volume Multiplier
-                    1.0f,                       // Pitch Multiplier
-                    0.0f,                       // Start Time
-                    nullptr,                    // Concurrency Settings
-                    nullptr,                    // Owning Actor
-                    true                        // Is UI Sound
-            );
-        }
     }
     
     return bIsDead;

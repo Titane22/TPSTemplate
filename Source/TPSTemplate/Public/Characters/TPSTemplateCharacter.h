@@ -11,6 +11,7 @@
 #include "Logging/LogMacros.h"
 #include "TPSTemplateCharacter.generated.h"
 
+class UPhysicalAnimationComponent;
 class UHurtbox;
 class UInventorySystem;
 class UHealthSystem;
@@ -58,6 +59,9 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	USceneComponent* Handgun;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
+	UPhysicalAnimationComponent* PAC;
+	
 	// Core Components
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UEquipmentSystem* EquipmentSystem;
@@ -179,6 +183,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
 	UChildActorComponent* HandgunChild;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment")
+	UChildActorComponent* FlashlightChild;
+	
 	// Animation State
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 	EAnimationState CurrentAnimationState;
@@ -211,6 +218,8 @@ public:
 	virtual EEquipmentSlot GetCurWeaponSlot() const { return EquipmentSystem ? EquipmentSystem->CurrentEquippedSlot : EEquipmentSlot::None; }
 
 	virtual void SetupEquipChildActor(EEquipmentSlot Slot);
+
+	UPhysicalAnimationComponent* GetPAC() const { return PAC; }
 	
 	// Core Action Functions (Callable by AI or Player)
 	void StartAim();
@@ -219,7 +228,7 @@ public:
 	void StopCrouch();
 	void PerformDodge(float ForwardInput, float RightInput);
 
-	virtual float TakeDamage_Implementation(float DamageAmount, const FDamageEvent& DamageEvent,
+	virtual float TakeDamage_Implementation(float DamageAmount, const FPointDamageEvent& DamageEvent,
 	                                        const FName HitBoneName, AController* EventInstigator, AActor* DamageCauser) override;
 
 	virtual bool IsDead_Implementation() const override;
@@ -232,4 +241,7 @@ protected:
 
 	UFUNCTION()
 	void OnHealthChanged(float NewHealth, float Damage);
+
+	UFUNCTION()
+	virtual void FlashOnOff();
 };

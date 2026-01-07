@@ -9,6 +9,7 @@
 #include "Components/WeaponSystem.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Weapon/Interactor.h"
 #include "Weapon/Interaction.h"
 #include "Weapon/MasterWeapon.h"
@@ -49,6 +50,7 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	GetCharacterMovement()->NavAgentProps.AgentStepHeight = -1.0f;
 	GetCharacterMovement()->NavAgentProps.NavWalkingSearchHeightScale = 0.5f;
 
+	
 	// Component Creation
 	Primary = CreateDefaultSubobject<USceneComponent>(TEXT("Primary"));
 	PrimaryChild = CreateDefaultSubobject<UChildActorComponent>(TEXT("PrimaryChild"));
@@ -59,13 +61,16 @@ ATPSTemplateCharacter::ATPSTemplateCharacter()
 	InteractorComponent = CreateDefaultSubobject<UInteractor>(TEXT("Interactor Component"));
 	InventorySystem = CreateDefaultSubobject<UInventorySystem>(TEXT("Inventory System"));
 	Hurtbox = CreateDefaultSubobject<UHurtbox>(TEXT("Hurtbox"));
-
+	PAC = CreateDefaultSubobject<UPhysicalAnimationComponent>(TEXT("PAC"));
+	FlashlightChild = CreateDefaultSubobject<UChildActorComponent>(TEXT("FlashlightChild"));
+	
 	// Component Hierarchy Setup
 	Primary->SetupAttachment(RootComponent);
 	Handgun->SetupAttachment(RootComponent);
 	PrimaryChild->SetupAttachment(Primary);
 	HandgunChild->SetupAttachment(Handgun);
-
+	FlashlightChild->SetupAttachment(GetMesh(), TEXT("flashlight_socket"));
+	
 	EquippedChilds.Add(EEquipmentSlot::Primary, PrimaryChild);
 	EquippedChilds.Add(EEquipmentSlot::Handgun, HandgunChild);
 }
@@ -74,6 +79,45 @@ void ATPSTemplateCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	if (PAC && GetMesh())
+	{
+		if (GetMesh())
+		{
+			// ✅ 이 줄 추가! (가장 중요)
+			GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+			// Physics Simulation은 OFF 유지 (Ragdoll 방지)
+			GetMesh()->SetSimulatePhysics(false);
+			GetMesh()->SetAllBodiesSimulatePhysics(false);
+			GetMesh()->SetEnableGravity(false);
+		}
+		
+		PAC->SetSkeletalMeshComponent(GetMesh());
+
+		TArray<FName> BonesToSimulate = {
+			TEXT("spine_01"),
+			TEXT("spine_02"),
+			TEXT("spine_03"),
+			TEXT("head"),
+			TEXT("upperarm_l"),
+			TEXT("upperarm_r")
+		};
+
+		for (const FName& BoneName : BonesToSimulate)
+		{
+			FPhysicalAnimationData PhysAnimData;
+			PhysAnimData.bIsLocalSimulation = true;
+			PhysAnimData.OrientationStrength = 0.0f;      // 0 = 자유롭게, 1000 = 애니메이션 따름
+			PhysAnimData.AngularVelocityStrength = 0.0f;
+			PhysAnimData.PositionStrength = 0.0f;
+			PhysAnimData.VelocityStrength = 0.0f;
+			PhysAnimData.MaxLinearForce = 0.0f;
+			PhysAnimData.MaxAngularForce = 0.0f;
+
+			PAC->ApplyPhysicalAnimationSettingsBelow(BoneName, PhysAnimData);
+		}
+	}
+	
 	// Timeline initialization
 	if (AimCurve)
 	{
@@ -100,6 +144,11 @@ void ATPSTemplateCharacter::BeginPlay()
 		UE_LOG(LogTemplateCharacter, Error, TEXT("[%s] EquipmentSystem is nullptr! Check Blueprint setup."), *GetName());
 	}
 
+	if (Hurtbox)
+	{
+		Hurtbox->CharacterRef = this;
+	}
+	
 	// Weapon initial setup
 	// NOTE: PrimaryChild and HandgunChild Child Actor Class should be set in Blueprint
 	if (PrimaryChild && PrimaryChild->GetChildActor())
@@ -157,6 +206,11 @@ void ATPSTemplateCharacter::BeginPlay()
 	{
 		HealthComponent->OnDeath.AddDynamic(this, &ATPSTemplateCharacter::OnDeath);
 		HealthComponent->OnHealthChanged.AddDynamic(this, &ATPSTemplateCharacter::OnHealthChanged);
+	}
+
+	if (FlashlightChild)
+	{
+		FlashlightChild->SetVisibility(false);
 	}
 }
 
@@ -253,6 +307,18 @@ void ATPSTemplateCharacter::OnDeath()
 void ATPSTemplateCharacter::OnHealthChanged(float NewHealth, float Damage)
 {
 	// TODO: Hit Reaction
+}
+
+void ATPSTemplateCharacter::FlashOnOff()
+{
+	if (FlashlightChild->IsVisible())
+	{
+		FlashlightChild->SetVisibility(false);
+	}
+	else
+	{
+		FlashlightChild->SetVisibility(true);
+	}
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -375,13 +441,19 @@ void ATPSTemplateCharacter::PerformDodge(float ForwardInput, float RightInput)
 	}
 }
 
-float ATPSTemplateCharacter::TakeDamage_Implementation(float DamageAmount, const FDamageEvent& DamageEvent,
+float ATPSTemplateCharacter::TakeDamage_Implementation(float DamageAmount, const FPointDamageEvent& DamageEvent,
                                                        const FName HitBoneName, AController* EventInstigator, AActor* DamageCauser)
 {
-    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor"));
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor"));
 	if (!HealthComponent || !Hurtbox)
 		return 0.f;
-    GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor2222222"));
+    //GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("HitActor2222222"));
+
+	FVector HitLocation = DamageEvent.HitInfo.ImpactPoint;
+	FVector HitDirection = DamageEvent.ShotDirection;
+	
+	// TODO: Procedural Hit Reaction
+	// Hurtbox->ApplyHitReaction(HitLocation, HitDirection, HitBoneName, 500.f);
 	
 	float Multiplier = Hurtbox->GetDamageMultiplier(HitBoneName);
 	float ModifiedDamage = DamageAmount * Multiplier;

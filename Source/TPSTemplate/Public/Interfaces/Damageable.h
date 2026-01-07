@@ -23,8 +23,8 @@ class TPSTEMPLATE_API IDamageable
 	// Add interface functions to this class. This is the class that will be inherited to implement this interface.
 public:
 	UFUNCTION(BlueprintNativeEvent)
-	float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, const FName HitBoneName,
-					 AController* EventInstigator, AActor* DamageCauser);
+	float TakeDamage(float DamageAmount, const FPointDamageEvent& DamageEvent, const FName HitBoneName,
+	                 AController* EventInstigator, AActor* DamageCauser);
 	
 	UFUNCTION(BlueprintNativeEvent)
 	bool IsDead() const;
