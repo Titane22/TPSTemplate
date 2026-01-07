@@ -7,6 +7,7 @@
 #include "Data/WeaponData.h"
 #include "Kismet/GameplayStatics.h"
 #include "Components/SceneComponent.h"
+#include "Perception/AISense_Hearing.h"
 
 // Sets default values for this component's properties
 UWeaponSystem::UWeaponSystem()
@@ -40,6 +41,13 @@ void UWeaponSystem::FireFX(USoundBase* Sound, FVector Location, USoundAttenuatio
 		0.0f,          // Start time
 		AttenuationSettings,    // Attenuation settings
 		ConcurrencySettings     // Concurrency settings
+	);
+
+	UAISense_Hearing::ReportNoiseEvent(
+		GetWorld(),
+		Location,
+		1.f,
+		GetOwner()
 	);
 }
 
