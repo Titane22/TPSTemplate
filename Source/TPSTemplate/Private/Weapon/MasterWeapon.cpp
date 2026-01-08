@@ -312,13 +312,17 @@ bool AMasterWeapon::ApplyHit(const FHitResult HitResult, bool& ValidHit)
               -HitResult.ImpactNormal,      // ShotDirection (총알 방향)
               nullptr                       // DamageTypeClass
           );
-        
+
+
+        APawn* OwnerPawn = WeaponSystem->CharacterRef;
+        AController* OwnerController = OwnerPawn ? OwnerPawn->GetController() : nullptr;
+
         float ActualDamage = IDamageable::Execute_TakeDamage(
             HitActor,
             WeaponData->Damage,
             DamageEvent,
             HitResult.BoneName,
-            GetInstigatorController(),
+            OwnerController,
             this
         );
         ValidHit = ActualDamage > 0.0f;

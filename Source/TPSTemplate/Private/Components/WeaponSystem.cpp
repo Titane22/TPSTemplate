@@ -47,7 +47,7 @@ void UWeaponSystem::FireFX(USoundBase* Sound, FVector Location, USoundAttenuatio
 		GetWorld(),
 		Location,
 		1.f,
-		GetOwner()
+		CharacterRef
 	);
 }
 

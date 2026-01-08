@@ -13,7 +13,7 @@
 #include "TPSTemplate_AIController.generated.h"
 
 UENUM(BlueprintType)
-enum class ESensorType : uint8
+enum class ESenseType : uint8
 {
 	None		UMETA(DisplayName = "None"),
 	Sight		UMETA(DisplayName = "Sight"),
@@ -26,7 +26,8 @@ enum class EAIState : uint8
 {
 	Passive			UMETA(DisplayName = "Passive"),
 	Attacking		UMETA(DisplayName = "Attacking"),
-	Investigating	UMETA(DisplayName = "Investigating")
+	Investigating	UMETA(DisplayName = "Investigating"),
+	Seeking			UMETA(DisplayName = "Seeking")
 };
 /**
  * 
@@ -40,6 +41,24 @@ public:
 
 	virtual void OnPossess(APawn* InPawn);
 
+	void SetStateAsPassive();
+
+	void SetStateAsAttacking(AActor* ToSetAttackTarget, bool bUseLastKnownAttackTarget);
+
+	void SetStateAsInvestigating(FVector Location);
+	
+	bool CanSenseActor(AActor* Actor, ESenseType SenseType, FAIStimulus& StimulusRef);
+	
+	void HandleSensedSight(AActor* Actor);
+
+	void HandleLostSight(AActor* Actor);
+	
+	void HandleSensedHearing(FVector Location);
+
+	void HandleSensedDamage(AActor* Actor);
+
+	void SeekAttackTarget();
+	
 	UFUNCTION()
 	void OnPerceptionUpdated(const TArray<AActor*>& UpdateActors);
 	
@@ -56,5 +75,28 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Perception")
 	UAISenseConfig_Damage* DamageConfig;
 
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Perception")
+	AActor* AttackTarget;
+	
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Perception")
+	FVector LastKnownLocation;
+
+	UPROPERTY(BlueprintReadOnly, Category = "AI|Perception")
+	float AwarenessLevel = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	FName AttackTargetKeyName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	FName InvestigateLocationKeyName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	FName StateKeyName;
+	
 	EAIState AIState;
+
+	FTimerHandle SeekAttackTargetTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "AI|Perception")
+	float TimeToSeekAfterLosingSight = 3.f;
 };

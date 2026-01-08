@@ -9,6 +9,7 @@
 #include "Components/WeaponSystem.h"
 #include "Engine/DamageEvents.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Perception/AISense_Damage.h"
 #include "PhysicsEngine/PhysicalAnimationComponent.h"
 #include "Weapon/Interactor.h"
 #include "Weapon/Interaction.h"
@@ -457,8 +458,25 @@ float ATPSTemplateCharacter::TakeDamage_Implementation(float DamageAmount, const
 	
 	float Multiplier = Hurtbox->GetDamageMultiplier(HitBoneName);
 	float ModifiedDamage = DamageAmount * Multiplier;
-
+	
 	HealthComponent->ApplyDamage(ModifiedDamage);
+	if (EventInstigator)
+	{
+		UAISense_Damage::ReportDamageEvent(
+			GetWorld(),
+			this,                              
+			EventInstigator,   
+			ModifiedDamage,
+			GetActorLocation(),                
+			GetActorLocation()                 
+		);
+		
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange,
+			TEXT("Damage Event NOT Reported: EventInstigator or Character is NULL"));
+	}
 	
 	return ModifiedDamage;
 }
