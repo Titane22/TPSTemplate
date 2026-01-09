@@ -137,11 +137,8 @@ public:
 	ELandState CurrentLandState;
 
 	// Weapon Variables
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon")
 	class UW_DynamicWeaponHUD* CurrentWeaponUI;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon")
-	class UUserWidget* UICrosshair;
 
 	UPROPERTY()
 	class AMasterWeapon* CurrentWeapon;
@@ -204,7 +201,10 @@ protected:
 	void HandleWeaponPickup(class AInteraction* Interaction, const struct FInteractionContext& Context);
 
 	void HandlePickup(class AInteraction* Interaction, const struct FInteractionContext& Context);
-	
+
+	UFUNCTION()
+	void UpdateWeaponUI(UWeaponData* WeaponData);
+
 	UFUNCTION()
 	void ClearWeaponUI();
 

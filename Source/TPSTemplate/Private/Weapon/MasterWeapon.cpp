@@ -38,7 +38,6 @@ AMasterWeapon::AMasterWeapon()
     bAutoReload = false;
 
     WeaponSystem->bIsDryAmmo = false;
-    WeaponSystem->CrosshairWidget = nullptr;
 
     // Weapon_Details는 BeginPlay에서 WeaponData로부터 초기화됩니다
 }

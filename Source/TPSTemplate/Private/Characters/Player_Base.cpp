@@ -25,6 +25,7 @@
 #include "Data/InteractionData.h"
 #include "Data/InteractionContext.h"
 #include "Kismet/GameplayStatics.h"
+#include "Widget/PlayerHUD.h"
 
 APlayer_Base::APlayer_Base()
 	: Super()
@@ -80,15 +81,6 @@ void APlayer_Base::BeginPlay()
 	// Camera Settings
 	CameraBoom->SocketOffset = FVector(0.0f, ShoulderYOffset, ShoulderZOffset);
 	CameraBoom->TargetArmLength = TargetArmLengths.X;
-
-	// Create HUD Widgets
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		if (UICrosshair)
-		{
-			UICrosshair->AddToViewport();
-		}
-	}
 
 	// Interaction 이벤트 바인딩 (Data-Driven)
 	// 레벨의 모든 Interaction에 이벤트 핸들러 연결
@@ -510,36 +502,15 @@ UUserWidget* APlayer_Base::AddWeaponUI(UWeaponData* WeaponData)
 		UUserWidget* WeaponUI = CreateWidget<UUserWidget>(PlayerController, WeaponData->WeaponUI);
 		if (WeaponUI)
 		{
-			CurrentWeaponUI = Cast<UW_DynamicWeaponHUD>(WeaponUI);
-			if (!CurrentWeaponUI)
+			APlayerController* PC = Cast<APlayerController>(GetController());
+			if (PC)
 			{
-				UE_LOG(LogTemp, Error, TEXT("[AddWeaponUI] Failed to cast to UW_DynamicWeaponHUD"));
-				return nullptr;
+				APlayerHUD* PlayerHUD = Cast<APlayerHUD>(PC->GetHUD());
+				if (PlayerHUD)
+				{
+					UpdateWeaponUI(WeaponData);
+				}
 			}
-
-			if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
-			{
-				CurrentWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
-			}
-			else if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
-			{
-				CurrentWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
-			}
-
-			if (!CurrentWeapon || !CurrentWeapon->WeaponSystem)
-			{
-				ClearWeaponUI();
-				CurrentWeaponUI = nullptr;
-				return nullptr;
-			}
-
-			CurrentWeaponUI->SetWeaponData(
-				WeaponData->WeaponUITexture,
-				WeaponData->ItemName.ToString(),
-				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
-				CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
-
-			CurrentWeaponUI->AddToViewport();
 
 			return CurrentWeaponUI;
 		}
@@ -587,7 +558,7 @@ void APlayer_Base::SwitchToPrimaryWeapon()
 		{
 			if (CurrentWeapon->WeaponData)
 			{
-				AddWeaponUI(CurrentWeapon->WeaponData);
+				UpdateWeaponUI(CurrentWeapon->WeaponData);
 				if (LocomotionBP)
 				{
 					LocomotionBP->LeftHandIKOffset = CurrentWeapon->WeaponData->LeftHandIKOffset;
@@ -667,7 +638,7 @@ void APlayer_Base::SwitchToHandgunWeapon()
 		{
 			if (CurrentWeapon->WeaponData)
 			{
-				AddWeaponUI(CurrentWeapon->WeaponData);
+				UpdateWeaponUI(CurrentWeapon->WeaponData);
 				if (LocomotionBP)
 				{
 					LocomotionBP->LeftHandIKOffset = CurrentWeapon->WeaponData->LeftHandIKOffset;
@@ -721,11 +692,16 @@ void APlayer_Base::ReadyToFire(AMasterWeapon* MasterWeapon, UWeaponData* Current
 	bCanFire = false;
 	MasterWeapon->Fire();
 
-	if (CurrentWeaponUI)
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (PC)
 	{
-		CurrentWeaponUI->UpdateAmmoCount(
-			MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
-			MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
+		APlayerHUD* PlayerHUD = Cast<APlayerHUD>(PC->GetHUD());
+		if (PlayerHUD)
+		{
+			PlayerHUD->UpdateWeaponAmmo(
+				MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
+				MasterWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
+		}
 	}
 
 	float FireDelay = CurrentWeaponDataAsset->FireRate;
@@ -782,10 +758,15 @@ void APlayer_Base::Interact()
 
 void APlayer_Base::ClearWeaponUI()
 {
-	if (!CurrentWeaponUI)
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
 		return;
 
-	CurrentWeaponUI->RemoveFromParent();
+	APlayerHUD* PlayerHUD = Cast<APlayerHUD>(PC->GetHUD());
+	if (PlayerHUD)
+	{
+		PlayerHUD->HideWeaponUI();
+	}
 }
 
 //==============================================================================
@@ -980,7 +961,7 @@ void APlayer_Base::HandleWeaponPickup(AInteraction* Interaction, const FInteract
 
 					if (Weapon->WeaponData)
 					{
-						AddWeaponUI(Weapon->WeaponData);
+						UpdateWeaponUI(Weapon->WeaponData);
 						if (LocomotionBP)
 						{
 							LocomotionBP->LeftHandIKOffset = Weapon->WeaponData->LeftHandIKOffset;
@@ -1024,4 +1005,56 @@ void APlayer_Base::HandlePickup(class AInteraction* Interaction, const struct FI
 	}
 
 	
+}
+
+void APlayer_Base::UpdateWeaponUI(UWeaponData* WeaponData)
+{
+	if (!IsPlayerControlled() || !WeaponData)
+		return;
+
+	APlayerController* PC = Cast<APlayerController>(GetController());
+	if (!PC)
+		return;
+
+	APlayerHUD* PlayerHUD = Cast<APlayerHUD>(PC->GetHUD());
+	if (!PlayerHUD)
+	{
+		UE_LOG(LogTemp, Error, TEXT("[UpdateWeaponUI] PlayerHUD not found"));
+		return;
+	}
+
+	AMasterWeapon* Weapon = nullptr;
+	if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Primary)
+	{
+		Weapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor());
+	}
+	else if (EquipmentSystem->CurrentEquippedSlot == EEquipmentSlot::Handgun)
+	{
+		Weapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor());
+	}
+	else
+	{
+		PlayerHUD->HideWeaponUI();
+		return;
+	}
+
+	if (!Weapon || !Weapon->WeaponSystem)
+	{
+		PlayerHUD->HideWeaponUI();
+		return;
+	}
+	
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, FString::Printf(TEXT("Called: %s"), *WeaponData->WeaponUITexture->GetName()));
+	
+	PlayerHUD->ShowWeaponUI(
+		WeaponData,
+		Weapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
+		Weapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo);
+	
+	PlayerHUD->SetWeaponDataOnHUD(
+		WeaponData->WeaponUITexture,
+		WeaponData->ItemName.ToString(),
+		CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.MaxAmmo,
+		CurrentWeapon->WeaponSystem->Weapon_Details.Weapon_Data.CurrentAmmo
+	);
 }

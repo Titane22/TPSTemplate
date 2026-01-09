@@ -92,9 +92,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
 	bool bIsDryAmmo;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon")
-	UUserWidget* CrosshairWidget;
-
 	UPROPERTY()
 	FWeapon_Details Weapon_Details = {
 		FWeapon_Data{
