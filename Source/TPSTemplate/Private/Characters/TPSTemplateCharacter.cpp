@@ -84,9 +84,7 @@ void ATPSTemplateCharacter::BeginPlay()
 	{
 		if (GetMesh())
 		{
-			// ✅ 이 줄 추가! (가장 중요)
 			GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-
 			// Physics Simulation은 OFF 유지 (Ragdoll 방지)
 			GetMesh()->SetSimulatePhysics(false);
 			GetMesh()->SetAllBodiesSimulatePhysics(false);
@@ -151,54 +149,17 @@ void ATPSTemplateCharacter::BeginPlay()
 	}
 	
 	// Weapon initial setup
-	// NOTE: PrimaryChild and HandgunChild Child Actor Class should be set in Blueprint
-	if (PrimaryChild && PrimaryChild->GetChildActor())
+	// NOTE: DefaultEquipments in EquipmentSystem will spawn and equip weapons at runtime
+	if (EquipmentSystem)
 	{
-		EquipmentSystem->SetChildActorForSlot(EEquipmentSlot::Primary, PrimaryChild);
-		FEquipmentSlot EquipSlot;
-		if (EquipmentSystem->GetEquipmentSlot(EEquipmentSlot::Primary, EquipSlot))
+		for (auto& DefaultEquip : EquipmentSystem->DefaultEquipments)
 		{
-			UItemData* ItemData = EquipSlot.ItemData.Get();
-			// Attach to back (storage state)
-			PrimaryChild->AttachToComponent(
-				GetMesh(),
-				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-				ItemData->UnequipSocketName
-			);
+			EEquipmentSlot Slot = DefaultEquip.Key;
+			UItemData* ItemData = DefaultEquip.Value;
 
-			// Set WeaponSystem reference
-			if (AMasterWeapon* PrimaryWeapon = Cast<AMasterWeapon>(PrimaryChild->GetChildActor()))
+			if (ItemData)
 			{
-				if (PrimaryWeapon->WeaponSystem)
-				{
-					PrimaryWeapon->WeaponSystem->CharacterRef = this;
-				}
-			}
-		}
-	}
-
-	if (HandgunChild && HandgunChild->GetChildActor())
-	{
-		EquipmentSystem->SetChildActorForSlot(EEquipmentSlot::Handgun, HandgunChild);
-		FEquipmentSlot EquipSlot;
-		if (EquipmentSystem->GetEquipmentSlot(EEquipmentSlot::Handgun, EquipSlot))
-		{
-			UItemData* ItemData = EquipSlot.ItemData.Get();
-			
-			// Attach to hand (default state)
-			HandgunChild->AttachToComponent(
-				GetMesh(),
-				FAttachmentTransformRules::SnapToTargetNotIncludingScale,
-				ItemData->UnequipSocketName
-			);
-
-			// Set WeaponSystem reference
-			if (AMasterWeapon* HandgunWeapon = Cast<AMasterWeapon>(HandgunChild->GetChildActor()))
-			{
-				if (HandgunWeapon->WeaponSystem)
-				{
-					HandgunWeapon->WeaponSystem->CharacterRef = this;
-				}
+				EquipmentSystem->Equip(Slot, ItemData);
 			}
 		}
 	}

@@ -94,7 +94,7 @@ public:
 	EEquipmentSlot CurrentEquippedSlot;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Equipment|Default")
-	TMap<EEquipmentSlot, UWeaponData*> DefaultEquipments;
+	TMap<EEquipmentSlot, UItemData*> DefaultEquipments;
 
 	TMap<EEquipmentSlot, UChildActorComponent*> SlotToChildActor;
 	
